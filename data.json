@@ -1,0 +1,150 @@
+{
+  "loanTotal": 25000,
+  "suppliers": [
+    "Blacksmith Artisans",
+    "LN Photography",
+    "Airbnb",
+    "Hair Stylist",
+    "Makeup Artist",
+    "DJ"
+  ],
+  "instalments": [
+    {
+      "id": "venue-deposit",
+      "label": "Venue deposit (25%)",
+      "payee": "Blacksmith Artisans",
+      "desc": "Deposit to secure the wedding date",
+      "due": "2026-02-13",
+      "amount": 7328.75,
+      "ref": "Invoice INV-0743.1",
+      "defaultPaid": 7328.75
+    },
+    {
+      "id": "photo-deposit",
+      "label": "Photography deposit",
+      "payee": "LN Photography",
+      "desc": "Deposit on Package 1 Wedding (6 hr coverage) — full package $3,500",
+      "due": "2026-04-02",
+      "amount": 700.0,
+      "ref": "Invoice 20260326",
+      "defaultPaid": 700.0
+    },
+    {
+      "id": "venue-instalment",
+      "label": "Venue instalment (50%)",
+      "payee": "Blacksmith Artisans",
+      "desc": "Due 6 months prior to the wedding",
+      "due": "2026-10-11",
+      "amount": 14657.5,
+      "ref": "Per Blacksmith T&Cs — date calculated, not printed on an invoice"
+    },
+    {
+      "id": "venue-balance",
+      "label": "Venue final balance (25%)",
+      "payee": "Blacksmith Artisans",
+      "desc": "Due 30 days prior to the wedding",
+      "due": "2027-03-11",
+      "amount": 7328.75,
+      "ref": "Invoice INV-0743"
+    },
+    {
+      "id": "photo-balance",
+      "label": "Photography balance",
+      "payee": "LN Photography",
+      "desc": "$3,500 full package less $700 deposit. Extra hours billed separately at $300/hr.",
+      "due": "2027-03-11",
+      "amount": 2800.0,
+      "ref": "Due one month prior to wedding."
+    },
+    {
+      "id": "airbnb",
+      "label": "Airbnb accommodation",
+      "payee": "Airbnb",
+      "desc": "Fairway 43 - Golfers Dream, Black Bull Golf Course, Yarrawonga. 8-night stay, 5-13 Apr 2027.",
+      "due": "2027-03-27",
+      "amount": 4296.44,
+      "ref": "Paid via PayPal"
+    },
+    {
+      "id": "hair-deposit",
+      "label": "Hair deposit",
+      "payee": "Hair Stylist",
+      "desc": "Deposit for wedding hair styling",
+      "due": "2026-04-22",
+      "amount": 100.0,
+      "ref": "Invoice 544-5138-6189. Total hair cost $1,300 ($100 deposit + $1,200 balance).",
+      "defaultPaid": 100.0
+    },
+    {
+      "id": "hair-balance",
+      "label": "Hair balance",
+      "payee": "Hair Stylist",
+      "desc": "Remaining balance on wedding hair styling",
+      "due": "2027-03-11",
+      "amount": 1200.0,
+      "ref": "Invoice 544-5138-6189. Due one month prior to wedding."
+    },
+    {
+      "id": "makeup-deposit",
+      "label": "Makeup deposit (50%)",
+      "payee": "Makeup Artist",
+      "desc": "Deposit on bridal makeup package (bride + 7 guests) with Fairlie Exintaris",
+      "due": "2026-09-07",
+      "amount": 1205.0,
+      "ref": "Invoice #177, dated 22 Apr 2026. Package $2,000 + travel $225 + preview $185 = $2,410 total incl. tax.",
+      "defaultPaid": 1205.0,
+      "fromLoan": true
+    },
+    {
+      "id": "makeup-balance",
+      "label": "Makeup balance (50%)",
+      "payee": "Makeup Artist",
+      "desc": "Remaining balance on bridal makeup package",
+      "due": "2027-04-04",
+      "amount": 1205.0,
+      "ref": "Invoice #177. Due 4 Apr 2027."
+    },
+    {
+      "id": "dj-deposit",
+      "label": "DJ deposit (50%)",
+      "payee": "DJ",
+      "desc": "Deposit to secure DJ/Saxophone booking with Jarrad Lees (5 hrs, 6-11pm)",
+      "due": "2026-09-14",
+      "amount": 1980.0,
+      "ref": "Invoice dated 7 Sep 2026. 5 hrs @ $500+GST/hr ($2,500) + $500 travel + $600 equipment = $3,960 incl GST.",
+      "defaultPaid": 1980.0,
+      "fromLoan": true
+    },
+    {
+      "id": "dj-balance",
+      "label": "DJ balance (50%)",
+      "payee": "DJ",
+      "desc": "Remaining balance on DJ/Saxophone booking with Jarrad Lees",
+      "due": "2027-03-11",
+      "amount": 1980.0,
+      "ref": "Due one month prior to wedding."
+    }
+  ],
+  "categories": [
+    { "name": "Venue & drinks", "inclGst": 29315 },
+    { "name": "Photography", "inclGst": 3500 },
+    { "name": "Hair", "inclGst": 1300.0 },
+    { "name": "Makeup", "inclGst": 2410.0 },
+    { "name": "DJ", "inclGst": 3960.0 },
+    { "name": "Airbnb", "inclGst": 4296.44 }
+  ],
+  "pending": [
+    { "id": "dress", "label": "Wedding dress", "indicative": null },
+    { "id": "bands", "label": "Wedding bands", "indicative": null },
+    { "id": "flowers", "label": "Flowers", "indicative": null },
+    { "id": "signage", "label": "Signage", "indicative": null },
+    { "id": "bus", "label": "Bus", "indicative": null },
+    { "id": "misc-decor", "label": "Misc decorations", "indicative": 500 },
+    { "id": "shoes", "label": "Shoes", "indicative": 500 },
+    { "id": "accessories", "label": "Accessories", "indicative": 500 },
+    { "id": "perfume", "label": "Perfume", "indicative": 500 },
+    { "id": "church", "label": "Church", "indicative": 500 },
+    { "id": "invites", "label": "Wedding invites", "indicative": 300 },
+    { "id": "videographer", "label": "Videographer", "indicative": null }
+  ]
+}

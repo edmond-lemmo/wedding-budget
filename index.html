@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wedding Budget</title>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Wedding Budget">
+<meta name="theme-color" content="#081109">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#081109; --card:#101C15; --ink:#F2F7F2; --muted:#8FA396;
+    --hair:rgba(255,255,255,0.08); --blue:#4A90FF; --blue-soft:rgba(74,144,255,0.18);
+    --lime:#C6F135; --lime-soft:rgba(198,241,53,0.16); --coral:#FF6B5B;
+    --coral-soft:rgba(255,107,91,0.18); --on-lime:#0B140D;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--paper);}
+  body{font-family:'Barlow',-apple-system,sans-serif;color:var(--ink);
+       padding-bottom:env(safe-area-inset-bottom);}
+  input{font-family:inherit;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .fade{animation:fadeIn .28s ease;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
+
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef} = React;
+
+const PAPER="#081109",CARD="#101C15",INK="#F2F7F2",MUTED="#8FA396";
+const HAIRLINE="rgba(255,255,255,0.08)",BLUE="#4A90FF",BLUE_SOFT="rgba(74,144,255,0.18)";
+const LIME="#C6F135",LIME_SOFT="rgba(198,241,53,0.16)",CORAL="#FF6B5B";
+const CORAL_SOFT="rgba(255,107,91,0.18)",ON_LIME="#0B140D";
+const F="'Barlow',-apple-system,sans-serif";
+const CAT_COLORS=["#C6F135","#4A90FF","#34D399","#60A5FA","#A3E635","#38BDF8"];
+const HERO_BG="linear-gradient(160deg,#0F2E1F 0%,#081910 55%,#04120B 100%)";
+const STORAGE_KEY="wedding-budget-v1";
+
+const AUD=n=>(n??0).toLocaleString("en-AU",{style:"currency",currency:"AUD"});
+const fmtDate=iso=>{if(!iso)return null;const d=new Date(iso+"T00:00:00");
+  return d.toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"});};
+const fmtDM=iso=>{if(!iso)return{day:"—",month:""};const d=new Date(iso+"T00:00:00");
+  return{day:d.getDate(),month:d.toLocaleDateString("en-AU",{month:"short"})};};
+const daysUntil=iso=>{if(!iso)return null;const t=new Date();t.setHours(0,0,0,0);
+  return Math.round((new Date(iso+"T00:00:00")-t)/86400000);};
+const initials=n=>n.split(" ").filter(w=>w[0]&&w[0]===w[0].toUpperCase())
+  .slice(0,2).map(w=>w[0]).join("")||n.slice(0,2).toUpperCase();
+
+// --- inline SVG icons (lucide-style) ---
+const Ic=({d,size=18,color="currentColor",sw=2})=>(
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+       strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">{d}</svg>);
+const IconHome=p=><Ic {...p} d={<><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></>}/>;
+const IconList=p=><Ic {...p} d={<><path d="M11 12H3M16 6H3M16 18H3"/><path d="M18 9l3 3-3 3"/></>}/>;
+const IconBank=p=><Ic {...p} d={<><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></>}/>;
+const IconGift=p=><Ic {...p} d={<><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></>}/>;
+const IconHelp=p=><Ic {...p} d={<><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></>}/>;
+const IconCheck=p=><Ic {...p} d={<polyline points="20 6 9 17 4 12"/>}/>;
+const IconClock=p=><Ic {...p} d={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>}/>;
+const IconAlert=p=><Ic {...p} d={<><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></>}/>;
+const IconChevD=p=><Ic {...p} d={<polyline points="6 9 12 15 18 9"/>}/>;
+const IconChevR=p=><Ic {...p} d={<polyline points="9 18 15 12 9 6"/>}/>;
+const IconPencil=p=><Ic {...p} d={<><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></>}/>;
+const IconTrash=p=><Ic {...p} d={<><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></>}/>;
+const IconPlus=p=><Ic {...p} d={<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>}/>;
+
+function App(){
+  const [cfg,setCfg]=useState(null);
+  const [err,setErr]=useState(null);
+  const [paid,setPaid]=useState({});
+  const [customAmounts,setCustomAmounts]=useState({});
+  const [customDates,setCustomDates]=useState({});
+  const [loanFunded,setLoanFunded]=useState({});
+  const [transfers,setTransfers]=useState([]);
+  const [tab,setTab]=useState("overview");
+  const [expanded,setExpanded]=useState(null);
+  const [editing,setEditing]=useState(null);
+  const [saveStatus,setSaveStatus]=useState("idle");
+  const saveTimer=useRef(null);
+
+  // Load config + saved state. Config defaults seed first-run values only;
+  // anything the user has since changed in localStorage wins.
+  useEffect(()=>{(async()=>{
+    try{
+      const r=await fetch("data.json?v="+Date.now());
+      if(!r.ok) throw new Error("data.json "+r.status);
+      const c=await r.json();
+      const dPaid={},dLoan={};
+      c.instalments.forEach(i=>{
+        if(i.defaultPaid) dPaid[i.id]=i.defaultPaid;
+        if(i.fromLoan) dLoan[i.id]=true;
+      });
+      let saved={};
+      try{ saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}"); }catch(e){}
+      setCfg(c);
+      setPaid({...dPaid,...(saved.paid||{})});
+      setLoanFunded({...dLoan,...(saved.loanFunded||{})});
+      setCustomAmounts(saved.customAmounts||{});
+      setCustomDates(saved.customDates||{});
+      setTransfers(saved.transfers||[]);
+    }catch(e){ setErr(e.message); }
+  })();},[]);
+
+  const save=useCallback((next)=>{
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(next));
+      setSaveStatus("saved");
+      clearTimeout(saveTimer.current);
+      saveTimer.current=setTimeout(()=>setSaveStatus("idle"),1200);
+    }catch(e){ setSaveStatus("error"); }
+  },[]);
+
+  const snap=(o={})=>({paid,customAmounts,customDates,loanFunded,transfers,...o});
+
+  const updatePaid=(id,v)=>{const n=v===""?0:parseFloat(v);
+    const next={...paid,[id]:isNaN(n)?0:n}; setPaid(next); save(snap({paid:next}));};
+  const togglePaid=(id,full)=>{const cur=paid[id]||0;const isFull=full>0&&cur>=full;
+    const next={...paid,[id]:isFull?0:full}; setPaid(next); save(snap({paid:next}));};
+  const updateAmount=(id,v)=>{const n=v===""?null:parseFloat(v);
+    const next={...customAmounts,[id]:isNaN(n)?null:n}; setCustomAmounts(next);
+    save(snap({customAmounts:next}));};
+  const updateDate=(id,v)=>{const next={...customDates,[id]:v};
+    setCustomDates(next); save(snap({customDates:next}));};
+  const toggleLoan=id=>{const next={...loanFunded,[id]:!loanFunded[id]};
+    setLoanFunded(next); save(snap({loanFunded:next}));};
+  const addTransfer=()=>{const next=[...transfers,{id:"t-"+Date.now(),from:"",amount:0,date:""}];
+    setTransfers(next); save(snap({transfers:next}));};
+  const updTransfer=(id,f,v)=>{const next=transfers.map(t=>t.id===id
+    ?{...t,[f]:f==="amount"?(v===""?0:parseFloat(v)||0):v}:t);
+    setTransfers(next); save(snap({transfers:next}));};
+  const delTransfer=id=>{const next=transfers.filter(t=>t.id!==id);
+    setTransfers(next); save(snap({transfers:next}));};
+
+  if(err) return <div style={{padding:24,color:CORAL,fontSize:14}}>
+    Couldn't load data.json — {err}. Make sure it sits next to index.html in the repo.</div>;
+  if(!cfg) return <div style={{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{width:28,height:28,borderRadius:"50%",border:"3px solid "+HAIRLINE,
+      borderTopColor:LIME,animation:"spin .8s linear infinite"}}/></div>;
+
+  const SUP=cfg.suppliers, LOAN_TOTAL=cfg.loanTotal;
+
+  const instalments=cfg.instalments.map(i=>({...i,
+    amount:i.amountTbc?(customAmounts[i.id]??null):i.amount,
+    dueOverride:customDates[i.id]??null, paidAmount:paid[i.id]||0,
+    fromLoan:!!loanFunded[i.id]}));
+  const extras=cfg.pending.map(p=>({...p,
+    confirmedAmount:customAmounts[p.id]??null, dueOverride:customDates[p.id]??null,
+    paidAmount:paid[p.id]||0}));
+  const confirmedExtras=extras.filter(p=>p.confirmedAmount!=null);
+  const indicativeTotal=cfg.pending.reduce((s,p)=>s+(p.indicative||0),0);
+
+  const totalCost=instalments.reduce((s,i)=>s+(i.amount||0),0)
+    +confirmedExtras.reduce((s,p)=>s+p.confirmedAmount,0);
+  const totalPaid=instalments.reduce((s,i)=>s+i.paidAmount,0)
+    +confirmedExtras.reduce((s,p)=>s+p.paidAmount,0);
+  const totalReceived=transfers.reduce((s,t)=>s+(t.amount||0),0);
+  const balance=totalCost-totalPaid-totalReceived;
+  const pct=totalCost>0?Math.min(100,((totalPaid+totalReceived)/totalCost)*100):0;
+
+  const suppliers=SUP.map(name=>{
+    const rows=instalments.filter(i=>i.payee===name);
+    const due=rows.reduce((s,i)=>s+(i.amount||0),0);
+    const p=rows.reduce((s,i)=>s+i.paidAmount,0);
+    const nextDue=rows.filter(r=>r.paidAmount<(r.amount||0))
+      .sort((a,b)=>(a.dueOverride||a.due||"").localeCompare(b.dueOverride||b.due||""))[0];
+    return{name,due,paid:p,balance:due-p,rows,nextDue};});
+
+  const isExp=n=>{if(expanded&&Object.prototype.hasOwnProperty.call(expanded,n))return expanded[n];
+    const s=suppliers.find(x=>x.name===n); return s?s.balance>0.01:true;};
+  const toggleExp=n=>setExpanded(p=>({...(p||{}),[n]:!isExp(n)}));
+
+  const outstanding=instalments.filter(i=>(i.amount||0)>0&&i.paidAmount<i.amount)
+    .sort((a,b)=>(a.dueOverride||a.due||"").localeCompare(b.dueOverride||b.due||""));
+  const upNext=outstanding.slice(0,3);
+  const overdue=outstanding.filter(i=>daysUntil(i.dueOverride||i.due)<0).length;
+
+  const catTotal=cfg.categories.reduce((s,c)=>s+c.inclGst,0);
+  const maxCatPct=Math.max(...cfg.categories.map(c=>(c.inclGst/catTotal)*100));
+
+  const loanItems=instalments.filter(i=>i.fromLoan);
+  const loanDrawn=loanItems.reduce((s,i)=>s+Math.min(i.paidAmount,i.amount||0),0);
+  const loanPlanned=loanItems.reduce((s,i)=>s+Math.max((i.amount||0)-i.paidAmount,0),0);
+  const loanAvailable=LOAN_TOTAL-loanDrawn-loanPlanned;
+
+  return (
+  <div style={{background:PAPER,minHeight:"100vh",color:INK,paddingBottom:110}}>
+    <div style={{padding:"calc(24px + env(safe-area-inset-top)) 20px 4px",display:"flex",
+      alignItems:"center",justifyContent:"space-between"}}>
+      <h1 style={{fontSize:22,margin:0,fontWeight:700}}>Wedding Budget</h1>
+      {saveStatus!=="idle"&&<span style={{fontSize:11.5,fontWeight:500,
+        color:saveStatus==="error"?CORAL:LIME}}>
+        {saveStatus==="error"?"Save failed":"Saved"}</span>}
+    </div>
+
+    {/* Hero */}
+    <div style={{padding:"14px 20px 0"}}>
+      <div style={{borderRadius:24,padding:"22px 22px 18px",background:HERO_BG,
+        color:"#F5F9F1",boxShadow:"0 14px 30px -12px rgba(2,10,6,.6)",
+        position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-50,right:-40,width:170,height:170,
+          borderRadius:"50%",background:"radial-gradient(circle,rgba(198,241,53,.14),transparent 70%)",
+          pointerEvents:"none"}}/>
+        <div style={{display:"flex",position:"relative"}}>
+          <div style={{flex:1}}>
+            <div style={{fontSize:12,opacity:.75,fontWeight:500}}>Paid</div>
+            <div style={{fontSize:28,fontWeight:700,marginTop:3,letterSpacing:-.5,color:LIME}}>{AUD(totalPaid)}</div>
+          </div>
+          <div style={{width:1,background:"rgba(245,249,241,.18)",margin:"2px 18px"}}/>
+          <div style={{flex:1}}>
+            <div style={{fontSize:12,opacity:.75,fontWeight:500}}>
+              Owing{totalReceived>0?" (after gifts)":""}</div>
+            <div style={{fontSize:28,fontWeight:700,marginTop:3,letterSpacing:-.5}}>{AUD(balance)}</div>
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginTop:16,position:"relative"}}>
+          <div style={{flex:1,height:8,background:"rgba(245,249,241,.2)",borderRadius:4,overflow:"hidden"}}>
+            <div style={{height:"100%",width:pct+"%",background:LIME,borderRadius:4,transition:"width .3s"}}/>
+          </div>
+          <span style={{fontSize:11.5,fontWeight:600,opacity:.9}}>{pct.toFixed(0)}% of {AUD(totalCost)}</span>
+        </div>
+
+        {tab==="overview"&&
+        <div className="fade" style={{marginTop:18,paddingTop:16,borderTop:"1px solid rgba(245,249,241,.2)"}}>
+          <div style={{fontSize:12,opacity:.85,fontWeight:600,marginBottom:10}}>Up next</div>
+          {upNext.length===0&&<div style={{fontSize:12.5,opacity:.8,fontStyle:"italic"}}>Everything confirmed is fully paid.</div>}
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {upNext.map(i=>{const d=daysUntil(i.dueOverride||i.due);
+              const od=d!=null&&d<0; const rem=(i.amount||0)-i.paidAmount;
+              return <button key={i.id} onClick={()=>togglePaid(i.id,i.amount)}
+                style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,
+                  background:"rgba(255,255,255,.1)",border:"1px solid "+(od?"rgba(255,107,91,.7)":"rgba(245,249,241,.18)"),
+                  borderRadius:12,padding:"10px 12px",textAlign:"left",cursor:"pointer",
+                  color:"#F5F9F1",fontFamily:F}}>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:13.5,fontWeight:600}}>{i.label}</div>
+                  <div style={{fontSize:11,opacity:.75,marginTop:1}}>{i.payee}, {fmtDate(i.dueOverride||i.due)}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontSize:14,fontWeight:700}}>{AUD(rem)}</div>
+                  <div style={{fontSize:10,fontWeight:600,marginTop:2,color:od?"#FFD3CD":"rgba(245,249,241,.75)"}}>
+                    {od?Math.abs(d)+"d overdue":d!=null?"Due in "+d+"d":""}</div>
+                </div></button>;})}
+          </div>
+        </div>}
+      </div>
+    </div>
+
+    {/* OVERVIEW */}
+    {tab==="overview"&&<div className="fade">
+      <Section title="Payment schedule">
+        <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,padding:"16px 16px 4px"}}>
+          {outstanding.length===0&&<div style={{fontSize:13,color:MUTED,fontStyle:"italic",paddingBottom:12}}>
+            No outstanding payments.</div>}
+          {outstanding.map((i,idx)=>{const dm=fmtDM(i.dueOverride||i.due);
+            const d=daysUntil(i.dueOverride||i.due);
+            const u=d==null?"none":d<0?"overdue":d<=30?"soon":"later";
+            const dot=u==="overdue"?CORAL:u==="soon"?BLUE:HAIRLINE;
+            return <div key={i.id} style={{display:"flex",gap:14}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:40,flexShrink:0}}>
+                <div style={{fontSize:10.5,color:MUTED,fontWeight:600}}>{dm.month}</div>
+                <div style={{fontSize:15,fontWeight:700,lineHeight:1.2}}>{dm.day}</div>
+                <div style={{width:9,height:9,borderRadius:"50%",background:dot,marginTop:5,
+                  border:u==="later"?"1.5px solid "+HAIRLINE:"none"}}/>
+                {idx<outstanding.length-1&&<div style={{flex:1,width:2,background:HAIRLINE,marginTop:3,minHeight:28}}/>}
+              </div>
+              <div style={{flex:1,paddingBottom:16,display:"flex",justifyContent:"space-between",gap:8}}>
+                <div><div style={{fontSize:13.5,fontWeight:600}}>{i.label}</div>
+                  <div style={{fontSize:11.5,color:MUTED,marginTop:1}}>{i.payee}</div></div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontSize:13.5,fontWeight:600}}>{AUD((i.amount||0)-i.paidAmount)}</div>
+                  <Pill u={u} d={d}/></div>
+              </div></div>;})}
+        </div>
+      </Section>
+
+      <Section title="By supplier">
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {suppliers.map(s=>{const sp=s.due>0?Math.min(100,(s.paid/s.due)*100):0;
+            const c=CAT_COLORS[SUP.indexOf(s.name)%CAT_COLORS.length];
+            return <button key={s.name} onClick={()=>{setTab("payments");
+              setExpanded(p=>({...(p||{}),[s.name]:true}));}}
+              style={{background:CARD,border:"1px solid "+HAIRLINE,borderRadius:16,padding:"12px 14px",
+                display:"flex",alignItems:"center",gap:12,width:"100%",textAlign:"left",
+                cursor:"pointer",color:INK,fontFamily:F}}>
+              <Ring pct={sp} color={c} label={initials(s.name)}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13.5,fontWeight:600}}>{s.name}</div>
+                <div style={{fontSize:11.5,color:MUTED,marginTop:1}}>{sp.toFixed(0)}% paid</div></div>
+              <div style={{fontSize:14,fontWeight:600,color:s.balance>0.01?INK:LIME}}>{AUD(s.balance)}</div>
+            </button>;})}
+        </div>
+      </Section>
+
+      <Section title="Spend by category">
+        <div style={{background:CARD,border:"1px solid "+HAIRLINE,borderRadius:16,padding:16,
+          display:"flex",flexDirection:"column",gap:12}}>
+          {cfg.categories.map((c,idx)=>{const cp=(c.inclGst/catTotal)*100;
+            return <div key={c.name}>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:5}}>
+                <span style={{fontWeight:500}}>{c.name}</span>
+                <span style={{color:MUTED}}>{cp.toFixed(0)}% · {AUD(c.inclGst)}</span></div>
+              <div style={{height:10,background:PAPER,borderRadius:5,overflow:"hidden"}}>
+                <div style={{height:"100%",width:((cp/maxCatPct)*100)+"%",
+                  background:CAT_COLORS[idx%CAT_COLORS.length],borderRadius:5}}/></div>
+            </div>;})}
+        </div>
+      </Section>
+    </div>}
+
+    {/* PAYMENTS */}
+    {tab==="payments"&&<div className="fade">
+      <Section title="All payments">
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {suppliers.map(s=>{const ex=isExp(s.name);const full=s.balance<=0.01;
+            const c=CAT_COLORS[SUP.indexOf(s.name)%CAT_COLORS.length];
+            const sp=s.due>0?Math.min(100,(s.paid/s.due)*100):0;
+            return <div key={s.name} style={{background:CARD,border:"1px solid "+HAIRLINE,
+              borderRadius:16,overflow:"hidden"}}>
+              <button onClick={()=>toggleExp(s.name)} style={{width:"100%",display:"flex",
+                alignItems:"center",justifyContent:"space-between",padding:"12px 14px",
+                background:"transparent",border:"none",cursor:"pointer",color:INK,
+                textAlign:"left",fontFamily:F}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+                  <Ring pct={sp} color={c} label={initials(s.name)} size={38}/>
+                  <div><div style={{fontSize:14,fontWeight:600}}>{s.name}</div>
+                    {!ex&&s.nextDue&&<div style={{fontSize:11.5,color:MUTED,marginTop:1}}>
+                      Next: {fmtDate(s.nextDue.dueOverride||s.nextDue.due)}</div>}
+                    {full&&<div style={{fontSize:11.5,color:LIME,marginTop:1}}>Fully paid</div>}</div>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:13.5,fontWeight:600,color:full?LIME:INK}}>{AUD(s.balance)}</div>
+                    <div style={{fontSize:10.5,color:MUTED}}>of {AUD(s.due)}</div></div>
+                  {ex?<IconChevD size={16} color={MUTED}/>:<IconChevR size={16} color={MUTED}/>}
+                </div>
+              </button>
+              {ex&&<div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:8}}>
+                {s.rows.slice().sort((a,b)=>(a.dueOverride||a.due||"").localeCompare(b.dueOverride||b.due||""))
+                  .map(i=><Instalment key={i.id} i={i} editing={editing} setEditing={setEditing}
+                    onDate={updateDate} onAmount={updateAmount} onToggle={togglePaid}
+                    onPaid={updatePaid} onLoan={toggleLoan}/>)}
+              </div>}
+            </div>;})}
+        </div>
+      </Section>
+    </div>}
+
+    {/* LOAN */}
+    {tab==="loan"&&<div className="fade">
+      <Section title="Loan">
+        <div style={{borderRadius:24,padding:"20px",background:HERO_BG,color:"#F5F9F1",
+          boxShadow:"0 14px 30px -12px rgba(2,10,6,.6)",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-50,right:-40,width:170,height:170,borderRadius:"50%",
+            background:"radial-gradient(circle,rgba(74,144,255,.16),transparent 70%)",pointerEvents:"none"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:8,position:"relative"}}>
+            <IconBank size={16}/><span style={{fontSize:12,opacity:.75,fontWeight:500}}>
+              {AUD(LOAN_TOTAL).replace(".00","")} loan</span></div>
+          <div style={{fontSize:30,fontWeight:700,marginTop:6,color:LIME,position:"relative"}}>{AUD(loanAvailable)}</div>
+          <div style={{fontSize:12,opacity:.75,marginTop:2,position:"relative"}}>available</div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginTop:16,position:"relative"}}>
+            <div style={{flex:1,height:8,background:"rgba(245,249,241,.18)",borderRadius:4,
+              overflow:"hidden",display:"flex"}}>
+              <div style={{height:"100%",width:((loanDrawn/LOAN_TOTAL)*100)+"%",background:LIME}}/>
+              <div style={{height:"100%",width:((loanPlanned/LOAN_TOTAL)*100)+"%",background:BLUE}}/></div>
+            <span style={{fontSize:11.5,fontWeight:600,opacity:.9}}>{((loanDrawn/LOAN_TOTAL)*100).toFixed(0)}%</span>
+          </div>
+          <div style={{display:"flex",gap:18,marginTop:16,paddingTop:14,
+            borderTop:"1px solid rgba(245,249,241,.16)",position:"relative"}}>
+            {[["Drawn",loanDrawn],["Committed",loanPlanned],["Total",LOAN_TOTAL]].map(([l,v])=>
+              <div key={l}><div style={{fontSize:11,opacity:.75}}>{l}</div>
+                <div style={{fontSize:15,fontWeight:600,marginTop:2}}>{AUD(v)}</div></div>)}
+          </div>
+        </div>
+      </Section>
+      <Section title="Funded from the loan">
+        <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,overflow:"hidden"}}>
+          {loanItems.length===0&&<div style={{fontSize:13,color:MUTED,fontStyle:"italic",padding:16}}>
+            Nothing tagged yet. Open Payments and tap "Loan" on an instalment.</div>}
+          {loanItems.map((i,idx)=>{const done=i.paidAmount>=(i.amount||0);
+            return <div key={i.id} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 14px",
+              borderBottom:idx<loanItems.length-1?"1px solid "+HAIRLINE:"none"}}>
+              <div style={{width:40,height:40,borderRadius:"50%",flexShrink:0,
+                background:CAT_COLORS[SUP.indexOf(i.payee)%CAT_COLORS.length],color:"#fff",
+                display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700}}>
+                {initials(i.payee)}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13.5,fontWeight:600}}>{i.label}</div>
+                <div style={{fontSize:11.5,color:MUTED,marginTop:1}}>{i.payee}</div></div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontSize:14,fontWeight:600}}>{AUD(i.amount)}</div>
+                <span style={{display:"inline-block",marginTop:3,fontSize:10.5,fontWeight:600,
+                  color:done?LIME:BLUE,background:done?LIME_SOFT:BLUE_SOFT,borderRadius:6,padding:"2px 6px"}}>
+                  {done?"Drawn":"Committed"}</span></div>
+            </div>;})}
+        </div>
+      </Section>
+    </div>}
+
+    {/* TRANSFERS */}
+    {tab==="transfers"&&<div className="fade">
+      <Section title="Transfers">
+        <div style={{borderRadius:24,padding:"20px",background:HERO_BG,color:"#F5F9F1",
+          boxShadow:"0 14px 30px -12px rgba(2,10,6,.6)",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:-50,right:-40,width:170,height:170,borderRadius:"50%",
+            background:"radial-gradient(circle,rgba(198,241,53,.14),transparent 70%)",pointerEvents:"none"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:8,position:"relative"}}>
+            <IconGift size={16}/><span style={{fontSize:12,opacity:.75,fontWeight:500}}>Money given to you</span></div>
+          <div style={{fontSize:30,fontWeight:700,marginTop:6,color:LIME,position:"relative"}}>{AUD(totalReceived)}</div>
+          <div style={{fontSize:12,opacity:.75,marginTop:2,position:"relative"}}>
+            across {transfers.length} transfer{transfers.length===1?"":"s"}</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:20}}>
+          <div style={{fontSize:14,fontWeight:600}}>All transfers</div>
+          <button onClick={addTransfer} style={{display:"flex",alignItems:"center",gap:4,
+            background:LIME_SOFT,border:"none",borderRadius:8,padding:"5px 10px",color:LIME,
+            fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F}}>
+            <IconPlus size={13}/> Add</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:8}}>
+          {transfers.length===0&&<div style={{background:CARD,border:"1px solid "+HAIRLINE,
+            borderRadius:16,padding:16,fontSize:13,color:MUTED,fontStyle:"italic"}}>
+            Nothing logged yet. Tap "Add" to record a gift.</div>}
+          {transfers.map(t=><div key={t.id} style={{background:CARD,border:"1px solid "+HAIRLINE,
+            borderRadius:16,padding:"12px 14px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <input value={t.from} placeholder="Who's it from?"
+                onChange={e=>updTransfer(t.id,"from",e.target.value)}
+                style={{flex:1,background:"transparent",border:"none",outline:"none",color:INK,
+                  fontSize:13.5,fontWeight:600,minWidth:0}}/>
+              <button onClick={()=>delTransfer(t.id)} style={{background:"transparent",border:"none",
+                cursor:"pointer",padding:4,flexShrink:0}}><IconTrash size={14} color={MUTED}/></button>
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginTop:8}}>
+              <input type="date" value={t.date} onChange={e=>updTransfer(t.id,"date",e.target.value)}
+                style={{background:PAPER,border:"1px solid "+HAIRLINE,borderRadius:8,color:MUTED,
+                  fontSize:11.5,padding:"4px 8px",fontFamily:F}}/>
+              <div style={{display:"flex",alignItems:"center",background:PAPER,borderRadius:8,
+                border:"1px solid "+HAIRLINE,padding:"3px 8px"}}>
+                <span style={{fontSize:13,color:MUTED}}>$</span>
+                <Money value={t.amount} onChange={v=>updTransfer(t.id,"amount",v)} size={13} w={90}/></div>
+            </div></div>)}
+        </div>
+        <div style={{fontSize:11,color:MUTED,marginTop:10,lineHeight:1.5}}>
+          This offsets the "Owing" figure on Overview — {AUD(totalReceived)} received is already
+          subtracted from what's shown as still owed.</div>
+      </Section>
+    </div>}
+
+    {/* PENDING */}
+    {tab==="pending"&&<div className="fade">
+      <Section title="Quotes not yet received"
+        right={indicativeTotal>0?<span style={{fontSize:11,color:MUTED}}>~{AUD(indicativeTotal)} indicative</span>:null}>
+        <div style={{background:CARD,border:"1px solid "+HAIRLINE,borderRadius:16,overflow:"hidden"}}>
+          {extras.map((p,idx)=>{const ok=p.confirmedAmount!=null;
+            return <div key={p.id} style={{padding:"12px 14px",
+              borderBottom:idx<extras.length-1?"1px solid "+HAIRLINE:"none"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <span style={{width:16,height:16,flexShrink:0,borderRadius:"50%",
+                  border:"1.5px solid "+(ok?LIME:HAIRLINE),background:ok?LIME:"transparent",
+                  display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {ok&&<IconCheck size={11} color={ON_LIME} sw={3}/>}</span>
+                <span style={{fontSize:13.5,flex:1,color:ok?INK:MUTED}}>{p.label}</span>
+                <Amount id={p.id} amount={p.confirmedAmount} tbc editing={editing}
+                  setEditing={setEditing} onSave={updateAmount}/>
+              </div>
+              <div style={{marginTop:6,paddingLeft:26,fontSize:10.5,color:MUTED,fontStyle:"italic"}}>
+                {ok?"Quote received":p.indicative?"~"+AUD(p.indicative)+" indicative, not a real quote":"No estimate yet"}
+              </div>
+              {ok&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:8,paddingLeft:26}}>
+                <Check on={p.confirmedAmount>0&&p.paidAmount>=p.confirmedAmount}
+                  onClick={()=>togglePaid(p.id,p.confirmedAmount)} small/>
+                <label style={{fontSize:11.5,color:MUTED}}>Paid</label>
+                <div style={{display:"flex",alignItems:"center",background:PAPER,borderRadius:8,
+                  border:"1px solid "+HAIRLINE,padding:"3px 8px"}}>
+                  <span style={{fontSize:12,color:MUTED}}>$</span>
+                  <Money value={p.paidAmount} onChange={v=>updatePaid(p.id,v)}/></div>
+              </div>}
+            </div>;})}
+        </div>
+        <div style={{fontSize:11,color:MUTED,marginTop:10,lineHeight:1.5}}>
+          Indicative numbers are guesses, not quotes, and aren't included in the budget.</div>
+      </Section>
+    </div>}
+
+    {/* Bottom nav */}
+    <div style={{position:"fixed",left:16,right:16,bottom:"calc(16px + env(safe-area-inset-bottom))",
+      zIndex:50,maxWidth:468,margin:"0 auto",background:"rgba(16,28,21,.94)",
+      backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid "+HAIRLINE,
+      borderRadius:22,boxShadow:"0 12px 28px -10px rgba(0,0,0,.6)",padding:"8px 10px",
+      display:"flex",justifyContent:"space-between"}}>
+      <Nav Icon={IconHome} on={tab==="overview"} go={()=>setTab("overview")} label="Overview"/>
+      <Nav Icon={IconList} on={tab==="payments"} go={()=>setTab("payments")} label="Payments" badge={overdue||null}/>
+      <Nav Icon={IconBank} on={tab==="loan"} go={()=>setTab("loan")} label="Loan"/>
+      <Nav Icon={IconGift} on={tab==="transfers"} go={()=>setTab("transfers")} label="Transfers"/>
+      <Nav Icon={IconHelp} on={tab==="pending"} go={()=>setTab("pending")} label="Pending"/>
+    </div>
+  </div>);
+}
+
+function Section({title,right,children}){return <div style={{padding:"20px 20px 0"}}>
+  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+    <div style={{fontSize:14,fontWeight:600}}>{title}</div>{right}</div>{children}</div>;}
+
+function Pill({u,d}){const m={overdue:[Math.abs(d)+"d overdue",CORAL_SOFT,CORAL],
+  soon:["Due in "+d+"d",BLUE_SOFT,BLUE],later:["Due in "+d+"d","rgba(255,255,255,.08)",MUTED]};
+  if(!m[u])return null;const[t,bg,c]=m[u];
+  return <span style={{display:"inline-block",marginTop:3,fontSize:10.5,fontWeight:600,
+    color:c,background:bg,borderRadius:6,padding:"2px 6px"}}>{t}</span>;}
+
+function Ring({pct,color,label,size=44}){const sw=size<=40?3:3.5;const r=(size-sw)/2;
+  const c=2*Math.PI*r;
+  return <div style={{position:"relative",width:size,height:size,flexShrink:0}}>
+    <svg width={size} height={size} style={{transform:"rotate(-90deg)"}}>
+      <circle cx={size/2} cy={size/2} r={r} stroke={HAIRLINE} strokeWidth={sw} fill="none"/>
+      <circle cx={size/2} cy={size/2} r={r} stroke={pct>=100?LIME:color} strokeWidth={sw} fill="none"
+        strokeDasharray={c} strokeDashoffset={c-(pct/100)*c} strokeLinecap="round"/></svg>
+    <div style={{position:"absolute",inset:sw+2,borderRadius:"50%",background:color,color:"#fff",
+      display:"flex",alignItems:"center",justifyContent:"center",fontSize:size<=40?11:12.5,
+      fontWeight:700}}>{label}</div></div>;}
+
+function Check({on,onClick,small}){const s=small?16:18;
+  return <button onClick={onClick} style={{width:s,height:s,flexShrink:0,borderRadius:"50%",
+    border:"1.5px solid "+(on?LIME:HAIRLINE),background:on?LIME:"transparent",display:"flex",
+    alignItems:"center",justifyContent:"center",cursor:"pointer",padding:0}}>
+    {on&&<IconCheck size={s-6} color={ON_LIME} sw={3}/>}</button>;}
+
+function Money({value,onChange,size=12,w=80}){const[f,setF]=useState(false);
+  const disp=f?(value===0?"":String(value)):(value===0?"":
+    value.toLocaleString("en-AU",{minimumFractionDigits:2,maximumFractionDigits:2}));
+  return <input type="text" inputMode="decimal" value={disp} placeholder="0.00"
+    onFocus={()=>setF(true)} onBlur={()=>setF(false)}
+    onChange={e=>onChange(e.target.value.replace(/,/g,""))}
+    style={{background:"transparent",border:"none",outline:"none",color:INK,fontSize:size,
+      width:w,marginLeft:2,fontFamily:F}}/>;}
+
+function Amount({id,amount,tbc,editing,setEditing,onSave}){
+  if(!tbc)return <span style={{fontSize:13,fontWeight:600}}>{AUD(amount)}</span>;
+  if(editing==="a-"+id)return <input type="number" autoFocus defaultValue={amount??""} placeholder="0.00"
+    onBlur={e=>{onSave(id,e.target.value);setEditing(null);}}
+    style={{background:CARD,border:"1px solid "+BLUE,borderRadius:6,color:INK,fontSize:13,
+      padding:"3px 6px",width:90,fontFamily:F}}/>;
+  return <button onClick={()=>setEditing("a-"+id)} style={{display:"flex",alignItems:"center",gap:4,
+    background:"transparent",border:"none",color:amount?INK:BLUE,fontSize:13,fontWeight:600,
+    cursor:"pointer",padding:0,fontFamily:F}}>
+    {amount?AUD(amount):"Set amount"} <IconPencil size={10}/></button>;}
+
+function Instalment({i,editing,setEditing,onDate,onAmount,onToggle,onPaid,onLoan}){
+  const tbc=i.amountTbc&&i.amount==null;
+  const st=tbc?"tbc":i.paidAmount>=(i.amount||0)&&(i.amount||0)>0?"paid":i.paidAmount>0?"partial":"due";
+  const S={paid:["Paid",LIME,LIME_SOFT,IconCheck],partial:["Partial",BLUE,BLUE_SOFT,IconClock],
+    due:["Due",MUTED,"rgba(255,255,255,.08)",IconClock],
+    tbc:["To confirm",MUTED,"rgba(255,255,255,.08)",IconAlert]};
+  const[lab,col,bg,SIcon]=S[st];
+  return <div style={{background:PAPER,border:"1px solid "+HAIRLINE,borderRadius:14,padding:"12px 14px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+      <div style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:600}}>{i.label}</div>
+      <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+        <button onClick={()=>onLoan(i.id)} style={{fontSize:10.5,fontWeight:600,padding:"3px 7px",
+          borderRadius:6,border:"1px solid "+(i.fromLoan?BLUE:HAIRLINE),
+          background:i.fromLoan?BLUE_SOFT:"transparent",color:i.fromLoan?BLUE:MUTED,
+          cursor:"pointer",fontFamily:F}}>Loan</button>
+        <div style={{display:"flex",alignItems:"center",gap:4,background:bg,borderRadius:6,padding:"3px 7px"}}>
+          <SIcon size={11} color={col}/><span style={{fontSize:10.5,fontWeight:600,color:col}}>{lab}</span></div>
+      </div></div>
+    <div style={{fontSize:12,color:MUTED,marginTop:6,lineHeight:1.4}}>{i.desc}</div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10,gap:8}}>
+      <span style={{fontSize:12,color:MUTED}}>{fmtDate(i.dueOverride||i.due)||"—"}</span>
+      <Amount id={i.id} amount={i.amount} tbc={i.amountTbc} editing={editing}
+        setEditing={setEditing} onSave={onAmount}/></div>
+    {!tbc&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:10,paddingTop:10,
+      borderTop:"1px solid "+HAIRLINE}}>
+      <Check on={i.amount>0&&i.paidAmount>=i.amount} onClick={()=>onToggle(i.id,i.amount)}/>
+      <label style={{fontSize:11.5,color:MUTED}}>Paid</label>
+      <div style={{display:"flex",alignItems:"center",background:CARD,borderRadius:8,
+        border:"1px solid "+HAIRLINE,padding:"3px 8px"}}>
+        <span style={{fontSize:12,color:MUTED}}>$</span>
+        <Money value={i.paidAmount} onChange={v=>onPaid(i.id,v)}/></div>
+      <span style={{fontSize:11,color:MUTED,marginLeft:"auto"}}>of {AUD(i.amount)}</span>
+    </div>}
+    {i.ref&&<div style={{fontSize:10.5,color:MUTED,marginTop:8,fontStyle:"italic"}}>{i.ref}</div>}
+  </div>;}
+
+function Nav({Icon,on,go,label,badge}){
+  return <button onClick={go} aria-label={label} style={{flex:on?1.6:1,display:"flex",
+    alignItems:"center",justifyContent:"center",padding:"8px 0",background:"transparent",
+    border:"none",cursor:"pointer",position:"relative",transition:"flex .2s ease"}}>
+    <span style={{height:38,minWidth:38,padding:on?"0 14px":0,borderRadius:12,display:"flex",
+      alignItems:"center",justifyContent:"center",gap:6,background:on?LIME:"transparent",
+      transition:"background .15s ease"}}>
+      <Icon size={18} color={on?ON_LIME:MUTED} sw={2.2}/>
+      {on&&<span style={{fontSize:12.5,fontWeight:700,color:ON_LIME,whiteSpace:"nowrap"}}>{label}</span>}
+    </span>
+    {badge&&<span style={{position:"absolute",top:2,right:"28%",background:CORAL,color:"#fff",
+      fontSize:9.5,fontWeight:700,borderRadius:8,padding:"1px 5px"}}>{badge}</span>}
+  </button>;}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
