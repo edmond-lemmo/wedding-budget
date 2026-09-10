@@ -102,13 +102,19 @@ function App(){
       const dPaid={},dLoan={};
       c.instalments.forEach(i=>{
         if(i.defaultPaid) dPaid[i.id]=i.defaultPaid;
-        if(i.fromLoan) dLoan[i.id]=true;
+        if(i.loanAmount) dLoan[i.id]=i.loanAmount;
       });
       let saved={};
       try{ saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}"); }catch(e){}
+      // migrate old boolean "fully loan-funded" flags to a dollar amount
+      const savedLoan={...(saved.loanFunded||{})};
+      Object.keys(savedLoan).forEach(id=>{
+        if(savedLoan[id]===true) savedLoan[id]=(c.instalments.find(x=>x.id===id)||{}).amount||0;
+        else if(savedLoan[id]===false) delete savedLoan[id];
+      });
       setCfg(c);
       setPaid({...dPaid,...(saved.paid||{})});
-      setLoanFunded({...dLoan,...(saved.loanFunded||{})});
+      setLoanFunded({...dLoan,...savedLoan});
       setCustomAmounts(saved.customAmounts||{});
       setCustomDates(saved.customDates||{});
       setTransfers(saved.transfers||[]);
@@ -135,8 +141,8 @@ function App(){
     save(snap({customAmounts:next}));};
   const updateDate=(id,v)=>{const next={...customDates,[id]:v};
     setCustomDates(next); save(snap({customDates:next}));};
-  const toggleLoan=id=>{const next={...loanFunded,[id]:!loanFunded[id]};
-    setLoanFunded(next); save(snap({loanFunded:next}));};
+  const updateLoan=(id,v)=>{const n=v===""?0:parseFloat(v);
+    const next={...loanFunded,[id]:isNaN(n)?0:n}; setLoanFunded(next); save(snap({loanFunded:next}));};
   const addTransfer=()=>{const next=[...transfers,{id:"t-"+Date.now(),from:"",amount:0,date:""}];
     setTransfers(next); save(snap({transfers:next}));};
   const updTransfer=(id,f,v)=>{const next=transfers.map(t=>t.id===id
@@ -156,7 +162,7 @@ function App(){
   const instalments=cfg.instalments.map(i=>({...i,
     amount:i.amountTbc?(customAmounts[i.id]??null):i.amount,
     dueOverride:customDates[i.id]??null, paidAmount:paid[i.id]||0,
-    fromLoan:!!loanFunded[i.id]}));
+    loanAmount:loanFunded[i.id]||0}));
   const extras=cfg.pending.map(p=>({...p,
     confirmedAmount:customAmounts[p.id]??null, dueOverride:customDates[p.id]??null,
     paidAmount:paid[p.id]||0}));
@@ -191,9 +197,12 @@ function App(){
   const catTotal=cfg.categories.reduce((s,c)=>s+c.inclGst,0);
   const maxCatPct=Math.max(...cfg.categories.map(c=>(c.inclGst/catTotal)*100));
 
-  const loanItems=instalments.filter(i=>i.fromLoan);
-  const loanDrawn=loanItems.reduce((s,i)=>s+Math.min(i.paidAmount,i.amount||0),0);
-  const loanPlanned=loanItems.reduce((s,i)=>s+Math.max((i.amount||0)-i.paidAmount,0),0);
+  const loanItems=instalments.filter(i=>i.loanAmount>0);
+  // an instalment's loan portion is treated as drawn in the same proportion
+  // as the instalment itself has been paid
+  const loanFrac=i=>i.amount>0?Math.min(i.paidAmount,i.amount)/i.amount:0;
+  const loanDrawn=loanItems.reduce((s,i)=>s+i.loanAmount*loanFrac(i),0);
+  const loanPlanned=loanItems.reduce((s,i)=>s+i.loanAmount*(1-loanFrac(i)),0);
   const loanAvailable=LOAN_TOTAL-loanDrawn-loanPlanned;
 
   return (
@@ -352,7 +361,7 @@ function App(){
                 {s.rows.slice().sort((a,b)=>(a.dueOverride||a.due||"").localeCompare(b.dueOverride||b.due||""))
                   .map(i=><Instalment key={i.id} i={i} editing={editing} setEditing={setEditing}
                     onDate={updateDate} onAmount={updateAmount} onToggle={togglePaid}
-                    onPaid={updatePaid} onLoan={toggleLoan}/>)}
+                    onPaid={updatePaid} onLoan={updateLoan}/>)}
               </div>}
             </div>;})}
         </div>
@@ -389,8 +398,9 @@ function App(){
       <Section title="Funded from the loan">
         <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,overflow:"hidden"}}>
           {loanItems.length===0&&<div style={{fontSize:13,color:MUTED,fontStyle:"italic",padding:16}}>
-            Nothing tagged yet. Open Payments and tap "Loan" on an instalment.</div>}
-          {loanItems.map((i,idx)=>{const done=i.paidAmount>=(i.amount||0);
+            Nothing tagged yet. Open Payments and set a "From loan" amount on an instalment.</div>}
+          {loanItems.map((i,idx)=>{const done=i.loanAmount*loanFrac(i)>=i.loanAmount-0.005;
+            const full=i.loanAmount>=(i.amount||0);
             return <div key={i.id} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 14px",
               borderBottom:idx<loanItems.length-1?"1px solid "+HAIRLINE:"none"}}>
               <div style={{width:40,height:40,borderRadius:"50%",flexShrink:0,
@@ -399,9 +409,10 @@ function App(){
                 {initials(i.payee)}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:13.5,fontWeight:600}}>{i.label}</div>
-                <div style={{fontSize:11.5,color:MUTED,marginTop:1}}>{i.payee}</div></div>
+                <div style={{fontSize:11.5,color:MUTED,marginTop:1}}>
+                  {i.payee}{!full?" · "+AUD(i.loanAmount)+" of "+AUD(i.amount):""}</div></div>
               <div style={{textAlign:"right",flexShrink:0}}>
-                <div style={{fontSize:14,fontWeight:600}}>{AUD(i.amount)}</div>
+                <div style={{fontSize:14,fontWeight:600}}>{AUD(i.loanAmount)}</div>
                 <span style={{display:"inline-block",marginTop:3,fontSize:10.5,fontWeight:600,
                   color:done?LIME:BLUE,background:done?LIME_SOFT:BLUE_SOFT,borderRadius:6,padding:"2px 6px"}}>
                   {done?"Drawn":"Committed"}</span></div>
@@ -568,14 +579,9 @@ function Instalment({i,editing,setEditing,onDate,onAmount,onToggle,onPaid,onLoan
   return <div style={{background:PAPER,border:"1px solid "+HAIRLINE,borderRadius:14,padding:"12px 14px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
       <div style={{flex:1,minWidth:0,fontSize:13.5,fontWeight:600}}>{i.label}</div>
-      <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-        <button onClick={()=>onLoan(i.id)} style={{fontSize:10.5,fontWeight:600,padding:"3px 7px",
-          borderRadius:6,border:"1px solid "+(i.fromLoan?BLUE:HAIRLINE),
-          background:i.fromLoan?BLUE_SOFT:"transparent",color:i.fromLoan?BLUE:MUTED,
-          cursor:"pointer",fontFamily:F}}>Loan</button>
-        <div style={{display:"flex",alignItems:"center",gap:4,background:bg,borderRadius:6,padding:"3px 7px"}}>
-          <SIcon size={11} color={col}/><span style={{fontSize:10.5,fontWeight:600,color:col}}>{lab}</span></div>
-      </div></div>
+      <div style={{display:"flex",alignItems:"center",gap:4,background:bg,borderRadius:6,padding:"3px 7px",flexShrink:0}}>
+        <SIcon size={11} color={col}/><span style={{fontSize:10.5,fontWeight:600,color:col}}>{lab}</span></div>
+    </div>
     <div style={{fontSize:12,color:MUTED,marginTop:6,lineHeight:1.4}}>{i.desc}</div>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10,gap:8}}>
       <span style={{fontSize:12,color:MUTED}}>{fmtDate(i.dueOverride||i.due)||"—"}</span>
@@ -589,6 +595,14 @@ function Instalment({i,editing,setEditing,onDate,onAmount,onToggle,onPaid,onLoan
         border:"1px solid "+HAIRLINE,padding:"3px 8px"}}>
         <span style={{fontSize:12,color:MUTED}}>$</span>
         <Money value={i.paidAmount} onChange={v=>onPaid(i.id,v)}/></div>
+      <span style={{fontSize:11,color:MUTED,marginLeft:"auto"}}>of {AUD(i.amount)}</span>
+    </div>}
+    {!tbc&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
+      <label style={{fontSize:11.5,color:MUTED,flexShrink:0}}>From loan</label>
+      <div style={{display:"flex",alignItems:"center",background:CARD,borderRadius:8,
+        border:"1px solid "+(i.loanAmount>0?BLUE:HAIRLINE),padding:"3px 8px"}}>
+        <span style={{fontSize:12,color:MUTED}}>$</span>
+        <Money value={i.loanAmount} onChange={v=>onLoan(i.id,v)}/></div>
       <span style={{fontSize:11,color:MUTED,marginLeft:"auto"}}>of {AUD(i.amount)}</span>
     </div>}
     {i.ref&&<div style={{fontSize:10.5,color:MUTED,marginTop:8,fontStyle:"italic"}}>{i.ref}</div>}

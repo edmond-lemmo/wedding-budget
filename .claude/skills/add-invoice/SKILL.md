@@ -41,7 +41,12 @@ Read the current `data.json` and match the structure exactly. Key rules:
 - **`due`** is `YYYY-MM-DD`
 - **`defaultPaid`** — only set this if the invoice shows the instalment as already
   paid. Set it to the full instalment amount. Omit the field entirely otherwise.
-- **`fromLoan: true`** — only if the user says this was paid from the $25k loan
+- **`loanAmount`** — the dollar amount of *this instalment* funded from the $25k
+  loan. Only set this if the user tells you some or all of it comes from the loan
+  — never assume. It can be less than the full instalment amount (e.g. `600` of a
+  `1200` instalment) to split funding between the loan and their own money; the
+  remainder is implicitly paid from their own funds. Omit the field entirely if
+  none of it comes from the loan.
 - **`ref`** — invoice number plus any terms worth remembering later
 
 Also update:
