@@ -47,6 +47,11 @@ Read the current `data.json` and match the structure exactly. Key rules:
   `1200` instalment) to split funding between the loan and their own money; the
   remainder is implicitly paid from their own funds. Omit the field entirely if
   none of it comes from the loan.
+- **`defaultLoanPaid`** — only set alongside `loanAmount` if the loan money has
+  *already been drawn/paid* to the vendor (not just earmarked). Set it to the
+  same value as `loanAmount` if the whole loan-funded portion has been drawn.
+  This is tracked separately from `defaultPaid` so the Loan tab can show what's
+  actually been drawn from the $25k vs what's still committed but not yet paid.
 - **`ref`** — invoice number plus any terms worth remembering later
 
 Also update:

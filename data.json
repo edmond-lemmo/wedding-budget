@@ -93,7 +93,8 @@
       "amount": 1205.0,
       "ref": "Invoice #177, dated 22 Apr 2026. Package $2,000 + travel $225 + preview $185 = $2,410 total incl. tax.",
       "defaultPaid": 1205.0,
-      "loanAmount": 1205.0
+      "loanAmount": 1205.0,
+      "defaultLoanPaid": 1205.0
     },
     {
       "id": "makeup-balance",
@@ -113,7 +114,8 @@
       "amount": 1980.0,
       "ref": "Invoice dated 7 Sep 2026. 5 hrs @ $500+GST/hr ($2,500) + $500 travel + $600 equipment = $3,960 incl GST.",
       "defaultPaid": 1980.0,
-      "loanAmount": 1980.0
+      "loanAmount": 1980.0,
+      "defaultLoanPaid": 1980.0
     },
     {
       "id": "dj-balance",

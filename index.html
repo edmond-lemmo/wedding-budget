@@ -85,6 +85,7 @@ function App(){
   const [customAmounts,setCustomAmounts]=useState({});
   const [customDates,setCustomDates]=useState({});
   const [loanFunded,setLoanFunded]=useState({});
+  const [loanPaid,setLoanPaid]=useState({});
   const [transfers,setTransfers]=useState([]);
   const [tab,setTab]=useState("overview");
   const [expanded,setExpanded]=useState(null);
@@ -99,10 +100,11 @@ function App(){
       const r=await fetch("data.json?v="+Date.now());
       if(!r.ok) throw new Error("data.json "+r.status);
       const c=await r.json();
-      const dPaid={},dLoan={};
+      const dPaid={},dLoan={},dLoanPaid={};
       c.instalments.forEach(i=>{
         if(i.defaultPaid) dPaid[i.id]=i.defaultPaid;
         if(i.loanAmount) dLoan[i.id]=i.loanAmount;
+        if(i.defaultLoanPaid) dLoanPaid[i.id]=i.defaultLoanPaid;
       });
       let saved={};
       try{ saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}"); }catch(e){}
@@ -112,9 +114,20 @@ function App(){
         if(savedLoan[id]===true) savedLoan[id]=(c.instalments.find(x=>x.id===id)||{}).amount||0;
         else if(savedLoan[id]===false) delete savedLoan[id];
       });
+      const mergedPaid={...dPaid,...(saved.paid||{})};
+      const mergedLoan={...dLoan,...savedLoan};
+      // one-time default for splits that predate loan-paid tracking: assume
+      // loan money was drawn first, up to whatever's been paid so far
+      const savedLoanPaid={...(saved.loanPaid||{})};
+      Object.keys(mergedLoan).forEach(id=>{
+        if(!(id in savedLoanPaid)&&!(id in dLoanPaid)){
+          savedLoanPaid[id]=Math.min(mergedLoan[id],mergedPaid[id]||0);
+        }
+      });
       setCfg(c);
-      setPaid({...dPaid,...(saved.paid||{})});
-      setLoanFunded({...dLoan,...savedLoan});
+      setPaid(mergedPaid);
+      setLoanFunded(mergedLoan);
+      setLoanPaid({...dLoanPaid,...savedLoanPaid});
       setCustomAmounts(saved.customAmounts||{});
       setCustomDates(saved.customDates||{});
       setTransfers(saved.transfers||[]);
@@ -130,7 +143,7 @@ function App(){
     }catch(e){ setSaveStatus("error"); }
   },[]);
 
-  const snap=(o={})=>({paid,customAmounts,customDates,loanFunded,transfers,...o});
+  const snap=(o={})=>({paid,customAmounts,customDates,loanFunded,loanPaid,transfers,...o});
 
   const updatePaid=(id,v)=>{const n=v===""?0:parseFloat(v);
     const next={...paid,[id]:isNaN(n)?0:n}; setPaid(next); save(snap({paid:next}));};
@@ -143,6 +156,10 @@ function App(){
     setCustomDates(next); save(snap({customDates:next}));};
   const updateLoan=(id,v)=>{const n=v===""?0:parseFloat(v);
     const next={...loanFunded,[id]:isNaN(n)?0:n}; setLoanFunded(next); save(snap({loanFunded:next}));};
+  const updateLoanPaid=(id,v)=>{const n=v===""?0:parseFloat(v);
+    const next={...loanPaid,[id]:isNaN(n)?0:n}; setLoanPaid(next); save(snap({loanPaid:next}));};
+  const toggleLoanPaid=(id,full)=>{const cur=loanPaid[id]||0;const isFull=full>0&&cur>=full;
+    const next={...loanPaid,[id]:isFull?0:full}; setLoanPaid(next); save(snap({loanPaid:next}));};
   const addTransfer=()=>{const next=[...transfers,{id:"t-"+Date.now(),from:"",amount:0,date:""}];
     setTransfers(next); save(snap({transfers:next}));};
   const updTransfer=(id,f,v)=>{const next=transfers.map(t=>t.id===id
@@ -162,7 +179,7 @@ function App(){
   const instalments=cfg.instalments.map(i=>({...i,
     amount:i.amountTbc?(customAmounts[i.id]??null):i.amount,
     dueOverride:customDates[i.id]??null, paidAmount:paid[i.id]||0,
-    loanAmount:loanFunded[i.id]||0}));
+    loanAmount:loanFunded[i.id]||0, loanPaidAmount:loanPaid[i.id]||0}));
   const extras=cfg.pending.map(p=>({...p,
     confirmedAmount:customAmounts[p.id]??null, dueOverride:customDates[p.id]??null,
     paidAmount:paid[p.id]||0}));
@@ -198,11 +215,8 @@ function App(){
   const maxCatPct=Math.max(...cfg.categories.map(c=>(c.inclGst/catTotal)*100));
 
   const loanItems=instalments.filter(i=>i.loanAmount>0);
-  // an instalment's loan portion is treated as drawn in the same proportion
-  // as the instalment itself has been paid
-  const loanFrac=i=>i.amount>0?Math.min(i.paidAmount,i.amount)/i.amount:0;
-  const loanDrawn=loanItems.reduce((s,i)=>s+i.loanAmount*loanFrac(i),0);
-  const loanPlanned=loanItems.reduce((s,i)=>s+i.loanAmount*(1-loanFrac(i)),0);
+  const loanDrawn=loanItems.reduce((s,i)=>s+Math.min(i.loanPaidAmount,i.loanAmount),0);
+  const loanPlanned=loanItems.reduce((s,i)=>s+Math.max(i.loanAmount-i.loanPaidAmount,0),0);
   const loanAvailable=LOAN_TOTAL-loanDrawn-loanPlanned;
 
   return (
@@ -361,7 +375,8 @@ function App(){
                 {s.rows.slice().sort((a,b)=>(a.dueOverride||a.due||"").localeCompare(b.dueOverride||b.due||""))
                   .map(i=><Instalment key={i.id} i={i} editing={editing} setEditing={setEditing}
                     onDate={updateDate} onAmount={updateAmount} onToggle={togglePaid}
-                    onPaid={updatePaid} onLoan={updateLoan}/>)}
+                    onPaid={updatePaid} onLoan={updateLoan}
+                    onLoanPaid={updateLoanPaid} onLoanPaidToggle={toggleLoanPaid}/>)}
               </div>}
             </div>;})}
         </div>
@@ -399,7 +414,7 @@ function App(){
         <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,overflow:"hidden"}}>
           {loanItems.length===0&&<div style={{fontSize:13,color:MUTED,fontStyle:"italic",padding:16}}>
             Nothing tagged yet. Open Payments and set a "From loan" amount on an instalment.</div>}
-          {loanItems.map((i,idx)=>{const done=i.loanAmount*loanFrac(i)>=i.loanAmount-0.005;
+          {loanItems.map((i,idx)=>{const done=i.loanPaidAmount>=i.loanAmount-0.005;
             const full=i.loanAmount>=(i.amount||0);
             return <div key={i.id} style={{display:"flex",alignItems:"center",gap:12,padding:"13px 14px",
               borderBottom:idx<loanItems.length-1?"1px solid "+HAIRLINE:"none"}}>
@@ -569,7 +584,7 @@ function Amount({id,amount,tbc,editing,setEditing,onSave}){
     cursor:"pointer",padding:0,fontFamily:F}}>
     {amount?AUD(amount):"Set amount"} <IconPencil size={10}/></button>;}
 
-function Instalment({i,editing,setEditing,onDate,onAmount,onToggle,onPaid,onLoan}){
+function Instalment({i,editing,setEditing,onDate,onAmount,onToggle,onPaid,onLoan,onLoanPaid,onLoanPaidToggle}){
   const tbc=i.amountTbc&&i.amount==null;
   const st=tbc?"tbc":i.paidAmount>=(i.amount||0)&&(i.amount||0)>0?"paid":i.paidAmount>0?"partial":"due";
   const S={paid:["Paid",LIME,LIME_SOFT,IconCheck],partial:["Partial",BLUE,BLUE_SOFT,IconClock],
@@ -604,6 +619,15 @@ function Instalment({i,editing,setEditing,onDate,onAmount,onToggle,onPaid,onLoan
         <span style={{fontSize:12,color:MUTED}}>$</span>
         <Money value={i.loanAmount} onChange={v=>onLoan(i.id,v)}/></div>
       <span style={{fontSize:11,color:MUTED,marginLeft:"auto"}}>of {AUD(i.amount)}</span>
+    </div>}
+    {!tbc&&i.loanAmount>0&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
+      <Check on={i.loanAmount>0&&i.loanPaidAmount>=i.loanAmount} onClick={()=>onLoanPaidToggle(i.id,i.loanAmount)} small/>
+      <label style={{fontSize:11.5,color:MUTED}}>Loan drawn</label>
+      <div style={{display:"flex",alignItems:"center",background:CARD,borderRadius:8,
+        border:"1px solid "+HAIRLINE,padding:"3px 8px"}}>
+        <span style={{fontSize:12,color:MUTED}}>$</span>
+        <Money value={i.loanPaidAmount} onChange={v=>onLoanPaid(i.id,v)}/></div>
+      <span style={{fontSize:11,color:MUTED,marginLeft:"auto"}}>of {AUD(i.loanAmount)}</span>
     </div>}
     {i.ref&&<div style={{fontSize:10.5,color:MUTED,marginTop:8,fontStyle:"italic"}}>{i.ref}</div>}
   </div>;}
