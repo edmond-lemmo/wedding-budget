@@ -223,6 +223,13 @@ function App(){
 
   return (
   <div style={{background:PAPER,minHeight:"100vh",color:INK,paddingBottom:110}}>
+    {/* Top notch scrim — gradual blur so scrolled content stays readable under the notch */}
+    <div style={{position:"fixed",top:0,left:0,right:0,zIndex:40,pointerEvents:"none",
+      height:"calc(env(safe-area-inset-top) + 56px)",
+      background:"linear-gradient(to bottom, rgba(8,17,9,.7), rgba(8,17,9,0))",
+      backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",
+      WebkitMaskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)",
+      maskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)"}}/>
     <div style={{padding:"calc(24px + env(safe-area-inset-top)) 20px 4px",display:"flex",
       alignItems:"center",justifyContent:"space-between"}}>
       <h1 style={{fontSize:22,margin:0,fontWeight:700}}>Wedding Budget</h1>
@@ -523,6 +530,14 @@ function App(){
           Indicative numbers are guesses, not quotes, and aren't included in the budget.</div>
       </Section>
     </div>}
+
+    {/* Bottom nav scrim — gradual blur so the tab bar stays legible over scrolled content */}
+    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,pointerEvents:"none",
+      height:"calc(env(safe-area-inset-bottom) + 104px)",
+      background:"linear-gradient(to top, rgba(8,17,9,.75), rgba(8,17,9,0))",
+      backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",
+      WebkitMaskImage:"linear-gradient(to top, #000 0%, #000 40%, transparent 100%)",
+      maskImage:"linear-gradient(to top, #000 0%, #000 40%, transparent 100%)"}}/>
 
     {/* Bottom nav */}
     <div style={{position:"fixed",left:16,right:16,bottom:"calc(16px + env(safe-area-inset-bottom))",
