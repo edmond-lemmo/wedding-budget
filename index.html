@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Wedding Budget</title>
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -23,6 +23,8 @@
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;background:var(--paper);}
+  html{scrollbar-width:none;-ms-overflow-style:none;}
+  html::-webkit-scrollbar{display:none;width:0;height:0;}
   body{font-family:'Barlow',-apple-system,sans-serif;color:var(--ink);
        padding-bottom:env(safe-area-inset-bottom);}
   input{font-family:inherit;}
