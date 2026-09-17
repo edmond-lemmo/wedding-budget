@@ -94,7 +94,22 @@ function App(){
   const [expanded,setExpanded]=useState(null);
   const [editing,setEditing]=useState(null);
   const [saveStatus,setSaveStatus]=useState("idle");
+  const [notchVisible,setNotchVisible]=useState(false);
   const saveTimer=useRef(null);
+  const heroRef=useRef(null);
+
+  // show the notch blur only once the main hero scorecard has scrolled out
+  // of view — while it's still on screen there's nothing under the notch
+  // that needs hiding
+  useEffect(()=>{
+    const onScroll=()=>{
+      if(!heroRef.current) return;
+      setNotchVisible(heroRef.current.getBoundingClientRect().bottom<=0);
+    };
+    onScroll();
+    window.addEventListener("scroll",onScroll,{passive:true});
+    return ()=>window.removeEventListener("scroll",onScroll);
+  },[]);
 
   // Load config + saved state. Config defaults seed first-run values only;
   // anything the user has since changed in localStorage wins.
@@ -238,9 +253,11 @@ function App(){
 
   return (
   <div style={{background:PAPER,minHeight:"100vh",color:INK,paddingBottom:110}}>
-    {/* Top notch scrim — gradual blur so scrolled content stays readable under the notch */}
+    {/* Top notch scrim — gradual blur so scrolled content stays readable under the notch.
+        Only fades in once the main hero scorecard has scrolled out of view. */}
     <div style={{position:"fixed",top:0,left:0,right:0,zIndex:40,pointerEvents:"none",
       height:"calc(env(safe-area-inset-top) + 56px)",
+      opacity:notchVisible?1:0,transition:"opacity .2s ease",
       background:"linear-gradient(to bottom, rgba(8,17,9,.7), rgba(8,17,9,0))",
       backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",
       WebkitMaskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)",
@@ -266,7 +283,7 @@ function App(){
     </div>
 
     {/* Hero */}
-    <div style={{padding:"14px 20px 0"}}>
+    <div ref={heroRef} style={{padding:"14px 20px 0"}}>
       <div style={{borderRadius:24,padding:"22px 22px 18px",background:HERO_BG,
         color:"#F5F9F1",boxShadow:"0 14px 30px -12px rgba(2,10,6,.6)",
         position:"relative",overflow:"hidden"}}>
