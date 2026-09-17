@@ -263,21 +263,7 @@ function App(){
       WebkitMaskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)",
       maskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)"}}/>
 
-    {/* Condensed paid/owing scorecard — floating pill fixed at the top across every tab.
-        Only shows once the main hero scorecard has scrolled out of view. */}
-    <div style={{position:"fixed",top:"calc(12px + env(safe-area-inset-top))",left:16,right:16,
-      zIndex:45,maxWidth:468,margin:"0 auto",background:"rgba(16,28,21,.94)",
-      opacity:notchVisible?1:0,pointerEvents:notchVisible?"auto":"none",
-      transition:"opacity .2s ease",
-      backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid "+HAIRLINE,
-      borderRadius:16,boxShadow:"0 12px 28px -10px rgba(0,0,0,.6)",padding:"8px 14px",
-      display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
-      <span style={{fontSize:12.5,fontWeight:600,color:LIME}}>Paid {AUD(totalPaid)}</span>
-      <span style={{fontSize:12.5,color:MUTED}}>·</span>
-      <span style={{fontSize:12.5,fontWeight:600,color:INK}}>Owing {AUD(balance)}</span>
-    </div>
-
-    <div style={{padding:"calc(76px + env(safe-area-inset-top)) 20px 4px",display:"flex",
+    <div style={{padding:"calc(24px + env(safe-area-inset-top)) 20px 4px",display:"flex",
       alignItems:"center",justifyContent:"space-between"}}>
       <h1 style={{fontSize:22,margin:0,fontWeight:700}}>Wedding Budget</h1>
       {saveStatus!=="idle"&&<span style={{fontSize:11.5,fontWeight:500,
@@ -340,6 +326,30 @@ function App(){
 
     {/* OVERVIEW */}
     {tab==="overview"&&<div className="fade">
+      <Section title="Where it's come from">
+        <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,padding:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:8}}>
+            <span style={{fontWeight:500}}>Paid so far</span>
+            <span style={{fontWeight:600}}>{AUD(totalPaid)}</span>
+          </div>
+          <div style={{height:10,background:PAPER,borderRadius:5,overflow:"hidden",display:"flex"}}>
+            {totalPaid>0&&<>
+              <div style={{height:"100%",width:(ownPaid/totalPaid*100)+"%",background:LIME}}/>
+              <div style={{height:"100%",width:(loanDrawn/totalPaid*100)+"%",background:BLUE}}/>
+              <div style={{height:"100%",width:(giftPaid/totalPaid*100)+"%",background:PINK}}/>
+            </>}
+          </div>
+          <div style={{display:"flex",gap:20,marginTop:14}}>
+            {[["Own funds",ownPaid,LIME],["Loan",loanDrawn,BLUE],["Gifts",giftPaid,PINK]].map(([l,v,c])=>
+              <div key={l}>
+                <div style={{display:"flex",alignItems:"center",gap:5}}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:c,flexShrink:0}}/>
+                  <span style={{fontSize:11,color:MUTED}}>{l}</span></div>
+                <div style={{fontSize:14,fontWeight:600,marginTop:2}}>{AUD(v)}</div></div>)}
+          </div>
+        </div>
+      </Section>
+
       <Section title="Payment schedule">
         <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,padding:"16px 16px 4px"}}>
           {outstanding.length===0&&<div style={{fontSize:13,color:MUTED,fontStyle:"italic",paddingBottom:12}}>
@@ -508,30 +518,6 @@ function App(){
         </div>
       </Section>
 
-      <Section title="Where it's come from">
-        <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,padding:16}}>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:8}}>
-            <span style={{fontWeight:500}}>Paid so far</span>
-            <span style={{fontWeight:600}}>{AUD(totalPaid)}</span>
-          </div>
-          <div style={{height:10,background:PAPER,borderRadius:5,overflow:"hidden",display:"flex"}}>
-            {totalPaid>0&&<>
-              <div style={{height:"100%",width:(ownPaid/totalPaid*100)+"%",background:LIME}}/>
-              <div style={{height:"100%",width:(loanDrawn/totalPaid*100)+"%",background:BLUE}}/>
-              <div style={{height:"100%",width:(giftPaid/totalPaid*100)+"%",background:PINK}}/>
-            </>}
-          </div>
-          <div style={{display:"flex",gap:20,marginTop:14}}>
-            {[["Own funds",ownPaid,LIME],["Loan",loanDrawn,BLUE],["Gifts",giftPaid,PINK]].map(([l,v,c])=>
-              <div key={l}>
-                <div style={{display:"flex",alignItems:"center",gap:5}}>
-                  <span style={{width:8,height:8,borderRadius:"50%",background:c,flexShrink:0}}/>
-                  <span style={{fontSize:11,color:MUTED}}>{l}</span></div>
-                <div style={{fontSize:14,fontWeight:600,marginTop:2}}>{AUD(v)}</div></div>)}
-          </div>
-        </div>
-      </Section>
-
       <Section title="All transfers"
         right={<button onClick={addTransfer} style={{display:"flex",alignItems:"center",gap:4,
           background:LIME_SOFT,border:"none",borderRadius:8,padding:"5px 10px",color:LIME,
@@ -612,23 +598,38 @@ function App(){
 
     {/* Bottom nav scrim — gradual blur so the tab bar stays legible over scrolled content */}
     <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:40,pointerEvents:"none",
-      height:"calc(env(safe-area-inset-bottom) + 104px)",
+      height:"calc(env(safe-area-inset-bottom) + 150px)",
       background:"linear-gradient(to top, rgba(8,17,9,.75), rgba(8,17,9,0))",
       backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",
       WebkitMaskImage:"linear-gradient(to top, #000 0%, #000 40%, transparent 100%)",
       maskImage:"linear-gradient(to top, #000 0%, #000 40%, transparent 100%)"}}/>
 
-    {/* Bottom nav */}
+    {/* Condensed paid/owing scorecard + bottom nav, stacked with no gap so they
+        read as one unit. The scorecard only shows once the main hero has
+        scrolled out of view; the nav is always there. */}
     <div style={{position:"fixed",left:16,right:16,bottom:"calc(16px + env(safe-area-inset-bottom))",
-      zIndex:50,maxWidth:468,margin:"0 auto",background:"rgba(16,28,21,.94)",
-      backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid "+HAIRLINE,
-      borderRadius:22,boxShadow:"0 12px 28px -10px rgba(0,0,0,.6)",padding:"8px 10px",
-      display:"flex",justifyContent:"space-between"}}>
-      <Nav Icon={IconHome} on={tab==="overview"} go={()=>setTab("overview")} label="Overview"/>
-      <Nav Icon={IconList} on={tab==="payments"} go={()=>setTab("payments")} label="Payments" badge={overdue||null}/>
-      <Nav Icon={IconBank} on={tab==="loan"} go={()=>setTab("loan")} label="Loan"/>
-      <Nav Icon={IconGift} on={tab==="transfers"} go={()=>setTab("transfers")} label="Transfers"/>
-      <Nav Icon={IconHelp} on={tab==="pending"} go={()=>setTab("pending")} label="Pending"/>
+      zIndex:50,maxWidth:468,margin:"0 auto",display:"flex",flexDirection:"column"}}>
+      <div style={{background:"rgba(16,28,21,.94)",
+        opacity:notchVisible?1:0,pointerEvents:notchVisible?"auto":"none",
+        transition:"opacity .2s ease",
+        backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",
+        border:"1px solid "+HAIRLINE,borderBottom:"none",
+        borderRadius:"16px 16px 0 0",boxShadow:"0 12px 28px -10px rgba(0,0,0,.6)",
+        padding:"8px 14px",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+        <span style={{fontSize:12.5,fontWeight:600,color:LIME}}>Paid {AUD(totalPaid)}</span>
+        <span style={{fontSize:12.5,color:MUTED}}>·</span>
+        <span style={{fontSize:12.5,fontWeight:600,color:INK}}>Owing {AUD(balance)}</span>
+      </div>
+      <div style={{background:"rgba(16,28,21,.94)",
+        backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid "+HAIRLINE,
+        borderRadius:notchVisible?"0 0 22px 22px":22,boxShadow:"0 12px 28px -10px rgba(0,0,0,.6)",
+        padding:"8px 10px",display:"flex",justifyContent:"space-between"}}>
+        <Nav Icon={IconHome} on={tab==="overview"} go={()=>setTab("overview")} label="Overview"/>
+        <Nav Icon={IconList} on={tab==="payments"} go={()=>setTab("payments")} label="Payments" badge={overdue||null}/>
+        <Nav Icon={IconBank} on={tab==="loan"} go={()=>setTab("loan")} label="Loan"/>
+        <Nav Icon={IconGift} on={tab==="transfers"} go={()=>setTab("transfers")} label="Transfers"/>
+        <Nav Icon={IconHelp} on={tab==="pending"} go={()=>setTab("pending")} label="Pending"/>
+      </div>
     </div>
   </div>);
 }
