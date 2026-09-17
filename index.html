@@ -91,6 +91,7 @@ function App(){
   const [loanPaid,setLoanPaid]=useState({});
   const [transfers,setTransfers]=useState([]);
   const [tab,setTab]=useState("overview");
+  const goTab=t=>{setTab(t); window.scrollTo(0,0);};
   const [expanded,setExpanded]=useState(null);
   const [editing,setEditing]=useState(null);
   const [saveStatus,setSaveStatus]=useState("idle");
@@ -387,7 +388,7 @@ function App(){
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {suppliers.map(s=>{const sp=s.due>0?Math.min(100,(s.paid/s.due)*100):0;
             const c=CAT_COLORS[SUP.indexOf(s.name)%CAT_COLORS.length];
-            return <button key={s.name} onClick={()=>{setTab("payments");
+            return <button key={s.name} onClick={()=>{goTab("payments");
               setExpanded(p=>({...(p||{}),[s.name]:true}));}}
               style={{background:CARD,border:"1px solid "+HAIRLINE,borderRadius:16,padding:"12px 14px",
                 display:"flex",alignItems:"center",gap:12,width:"100%",textAlign:"left",
@@ -631,11 +632,11 @@ function App(){
         backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid "+HAIRLINE,
         borderRadius:notchVisible?"0 0 22px 22px":22,boxShadow:"0 12px 28px -10px rgba(0,0,0,.6)",
         padding:"8px 10px",display:"flex",justifyContent:"space-between"}}>
-        <Nav Icon={IconHome} on={tab==="overview"} go={()=>setTab("overview")} label="Overview"/>
-        <Nav Icon={IconList} on={tab==="payments"} go={()=>setTab("payments")} label="Payments" badge={overdue||null}/>
-        <Nav Icon={IconBank} on={tab==="loan"} go={()=>setTab("loan")} label="Loan"/>
-        <Nav Icon={IconGift} on={tab==="transfers"} go={()=>setTab("transfers")} label="Transfers"/>
-        <Nav Icon={IconHelp} on={tab==="pending"} go={()=>setTab("pending")} label="Pending"/>
+        <Nav Icon={IconHome} on={tab==="overview"} go={()=>goTab("overview")} label="Overview"/>
+        <Nav Icon={IconList} on={tab==="payments"} go={()=>goTab("payments")} label="Payments" badge={overdue||null}/>
+        <Nav Icon={IconBank} on={tab==="loan"} go={()=>goTab("loan")} label="Loan"/>
+        <Nav Icon={IconGift} on={tab==="transfers"} go={()=>goTab("transfers")} label="Transfers"/>
+        <Nav Icon={IconHelp} on={tab==="pending"} go={()=>goTab("pending")} label="Pending"/>
       </div>
     </div>
   </div>);
