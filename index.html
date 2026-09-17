@@ -47,6 +47,7 @@ const PAPER="#081109",CARD="#101C15",INK="#F2F7F2",MUTED="#8FA396";
 const HAIRLINE="rgba(255,255,255,0.08)",BLUE="#4A90FF",BLUE_SOFT="rgba(74,144,255,0.18)";
 const LIME="#C6F135",LIME_SOFT="rgba(198,241,53,0.16)",CORAL="#FF6B5B";
 const CORAL_SOFT="rgba(255,107,91,0.18)",ON_LIME="#0B140D";
+const PINK="#E08FFF",PINK_SOFT="rgba(224,143,255,0.18)";
 const F="'Barlow',-apple-system,sans-serif";
 const CAT_COLORS=["#C6F135","#4A90FF","#34D399","#60A5FA","#A3E635","#38BDF8"];
 const HERO_BG="linear-gradient(160deg,#0F2E1F 0%,#081910 55%,#04120B 100%)";
@@ -227,6 +228,14 @@ function App(){
   const loanPlanned=loanItems.reduce((s,i)=>s+Math.max(i.loanAmount-i.loanPaidAmount,0),0);
   const loanAvailable=LOAN_TOTAL-loanDrawn-loanPlanned;
 
+  // how much of what's actually been paid so far came from a placed gift —
+  // capped by what's been paid on that bill, so an unpaid or partly-paid
+  // instalment doesn't count gift money that hasn't gone out the door yet
+  const giftPaid=transfers.reduce((s,t)=>{
+    const inst=t.instalmentId&&instalments.find(x=>x.id===t.instalmentId);
+    return inst?s+Math.min(t.amount||0,inst.paidAmount):s;},0);
+  const ownPaid=Math.max(totalPaid-loanDrawn-giftPaid,0);
+
   return (
   <div style={{background:PAPER,minHeight:"100vh",color:INK,paddingBottom:110}}>
     {/* Top notch scrim — gradual blur so scrolled content stays readable under the notch */}
@@ -236,7 +245,19 @@ function App(){
       backdropFilter:"blur(10px)",WebkitBackdropFilter:"blur(10px)",
       WebkitMaskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)",
       maskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)"}}/>
-    <div style={{padding:"calc(24px + env(safe-area-inset-top)) 20px 4px",display:"flex",
+
+    {/* Condensed paid/owing scorecard — fixed at the very top across every tab */}
+    <div style={{position:"fixed",top:0,left:0,right:0,zIndex:45,
+      paddingTop:"env(safe-area-inset-top)",height:"calc(env(safe-area-inset-top) + 20px)",
+      display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+      background:"rgba(16,28,21,.85)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",
+      borderBottom:"1px solid "+HAIRLINE}}>
+      <span style={{fontSize:10,fontWeight:600,color:LIME}}>Paid {AUD(totalPaid)}</span>
+      <span style={{fontSize:10,color:MUTED}}>·</span>
+      <span style={{fontSize:10,fontWeight:600,color:INK}}>Owing {AUD(balance)}</span>
+    </div>
+
+    <div style={{padding:"calc(44px + env(safe-area-inset-top)) 20px 4px",display:"flex",
       alignItems:"center",justifyContent:"space-between"}}>
       <h1 style={{fontSize:22,margin:0,fontWeight:700}}>Wedding Budget</h1>
       {saveStatus!=="idle"&&<span style={{fontSize:11.5,fontWeight:500,
@@ -465,14 +486,38 @@ function App(){
           <div style={{fontSize:12,opacity:.75,marginTop:2,position:"relative"}}>
             across {transfers.length} transfer{transfers.length===1?"":"s"}</div>
         </div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:20}}>
-          <div style={{fontSize:14,fontWeight:600}}>All transfers</div>
-          <button onClick={addTransfer} style={{display:"flex",alignItems:"center",gap:4,
-            background:LIME_SOFT,border:"none",borderRadius:8,padding:"5px 10px",color:LIME,
-            fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F}}>
-            <IconPlus size={13}/> Add</button>
+      </Section>
+
+      <Section title="Where it's come from">
+        <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,padding:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:8}}>
+            <span style={{fontWeight:500}}>Paid so far</span>
+            <span style={{fontWeight:600}}>{AUD(totalPaid)}</span>
+          </div>
+          <div style={{height:10,background:PAPER,borderRadius:5,overflow:"hidden",display:"flex"}}>
+            {totalPaid>0&&<>
+              <div style={{height:"100%",width:(ownPaid/totalPaid*100)+"%",background:LIME}}/>
+              <div style={{height:"100%",width:(loanDrawn/totalPaid*100)+"%",background:BLUE}}/>
+              <div style={{height:"100%",width:(giftPaid/totalPaid*100)+"%",background:PINK}}/>
+            </>}
+          </div>
+          <div style={{display:"flex",gap:20,marginTop:14}}>
+            {[["Own funds",ownPaid,LIME],["Loan",loanDrawn,BLUE],["Gifts",giftPaid,PINK]].map(([l,v,c])=>
+              <div key={l}>
+                <div style={{display:"flex",alignItems:"center",gap:5}}>
+                  <span style={{width:8,height:8,borderRadius:"50%",background:c,flexShrink:0}}/>
+                  <span style={{fontSize:11,color:MUTED}}>{l}</span></div>
+                <div style={{fontSize:14,fontWeight:600,marginTop:2}}>{AUD(v)}</div></div>)}
+          </div>
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:8}}>
+      </Section>
+
+      <Section title="All transfers"
+        right={<button onClick={addTransfer} style={{display:"flex",alignItems:"center",gap:4,
+          background:LIME_SOFT,border:"none",borderRadius:8,padding:"5px 10px",color:LIME,
+          fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F}}>
+          <IconPlus size={13}/> Add</button>}>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {transfers.length===0&&<div style={{background:CARD,border:"1px solid "+HAIRLINE,
             borderRadius:16,padding:16,fontSize:13,color:MUTED,fontStyle:"italic"}}>
             Nothing logged yet. Tap "Add" to record a gift.</div>}
