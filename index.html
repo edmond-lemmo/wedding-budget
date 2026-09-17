@@ -162,12 +162,18 @@ function App(){
     const next={...loanPaid,[id]:isNaN(n)?0:n}; setLoanPaid(next); save(snap({loanPaid:next}));};
   const toggleLoanPaid=(id,full)=>{const cur=loanPaid[id]||0;const isFull=full>0&&cur>=full;
     const next={...loanPaid,[id]:isFull?0:full}; setLoanPaid(next); save(snap({loanPaid:next}));};
-  const addTransfer=()=>{const next=[...transfers,{id:"t-"+Date.now(),from:"",amount:0,date:""}];
+  const addTransfer=()=>{const next=[...transfers,{id:"t-"+Date.now(),from:"",amount:0,date:"",instalmentId:null}];
     setTransfers(next); save(snap({transfers:next}));};
   const updTransfer=(id,f,v)=>{const next=transfers.map(t=>t.id===id
     ?{...t,[f]:f==="amount"?(v===""?0:parseFloat(v)||0):v}:t);
     setTransfers(next); save(snap({transfers:next}));};
   const delTransfer=id=>{const next=transfers.filter(t=>t.id!==id);
+    setTransfers(next); save(snap({transfers:next}));};
+  // assigns a transfer to an instalment (or clears it with transferId=""),
+  // moving it off whatever instalment it was previously placed against
+  const assignGift=(instalmentId,transferId)=>{
+    const next=transfers.map(t=>t.id===transferId?{...t,instalmentId}
+      :t.instalmentId===instalmentId?{...t,instalmentId:null}:t);
     setTransfers(next); save(snap({transfers:next}));};
 
   if(err) return <div style={{padding:24,color:CORAL,fontSize:14}}>
@@ -385,7 +391,8 @@ function App(){
                   .map(i=><Instalment key={i.id} i={i} editing={editing} setEditing={setEditing}
                     onDate={updateDate} onAmount={updateAmount} onToggle={togglePaid}
                     onPaid={updatePaid} onLoan={updateLoan}
-                    onLoanPaid={updateLoanPaid} onLoanPaidToggle={toggleLoanPaid}/>)}
+                    onLoanPaid={updateLoanPaid} onLoanPaidToggle={toggleLoanPaid}
+                    transfers={transfers} onGift={assignGift}/>)}
               </div>}
             </div>;})}
         </div>
@@ -487,11 +494,18 @@ function App(){
                 border:"1px solid "+HAIRLINE,padding:"3px 8px"}}>
                 <span style={{fontSize:13,color:MUTED}}>$</span>
                 <Money value={t.amount} onChange={v=>updTransfer(t.id,"amount",v)} size={13} w={90}/></div>
-            </div></div>)}
+            </div>
+            {(()=>{const placed=instalments.find(x=>x.id===t.instalmentId);
+              return placed
+                ?<div style={{fontSize:11,color:BLUE,marginTop:8}}>→ Placed on {placed.label}</div>
+                :<div style={{fontSize:11,color:MUTED,marginTop:8,fontStyle:"italic"}}>
+                    Not yet placed — assign it under Payments</div>;})()}
+            </div>)}
         </div>
         <div style={{fontSize:11,color:MUTED,marginTop:10,lineHeight:1.5}}>
           This offsets the "Owing" figure on Overview — {AUD(totalReceived)} received is already
-          subtracted from what's shown as still owed.</div>
+          subtracted from what's shown as still owed. Placing a gift against a payment (under Payments)
+          is just for your own tracking of where it'll go — it doesn't change that total.</div>
       </Section>
     </div>}
 
@@ -601,7 +615,8 @@ function Amount({id,amount,tbc,editing,setEditing,onSave}){
     cursor:"pointer",padding:0,fontFamily:F}}>
     {amount?AUD(amount):"Set amount"} <IconPencil size={10}/></button>;}
 
-function Instalment({i,editing,setEditing,onDate,onAmount,onToggle,onPaid,onLoan,onLoanPaid,onLoanPaidToggle}){
+function Instalment({i,editing,setEditing,onDate,onAmount,onToggle,onPaid,onLoan,onLoanPaid,onLoanPaidToggle,transfers,onGift}){
+  const giftedBy=transfers&&transfers.find(t=>t.instalmentId===i.id);
   const tbc=i.amountTbc&&i.amount==null;
   const st=tbc?"tbc":i.paidAmount>=(i.amount||0)&&(i.amount||0)>0?"paid":i.paidAmount>0?"partial":"due";
   const S={paid:["Paid",LIME,LIME_SOFT,IconCheck],partial:["Partial",BLUE,BLUE_SOFT,IconClock],
@@ -645,6 +660,15 @@ function Instalment({i,editing,setEditing,onDate,onAmount,onToggle,onPaid,onLoan
         <span style={{fontSize:12,color:MUTED}}>$</span>
         <Money value={i.loanPaidAmount} onChange={v=>onLoanPaid(i.id,v)}/></div>
       <span style={{fontSize:11,color:MUTED,marginLeft:"auto"}}>of {AUD(i.loanAmount)}</span>
+    </div>}
+    {!tbc&&transfers&&transfers.length>0&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
+      <label style={{fontSize:11.5,color:MUTED,flexShrink:0}}>Gift</label>
+      <select value={giftedBy?giftedBy.id:""} onChange={e=>onGift(i.id,e.target.value)}
+        style={{flex:1,minWidth:0,background:CARD,border:"1px solid "+(giftedBy?BLUE:HAIRLINE),
+          borderRadius:8,color:giftedBy?INK:MUTED,fontSize:12,padding:"5px 8px",fontFamily:F}}>
+        <option value="">— none —</option>
+        {transfers.map(t=><option key={t.id} value={t.id}>{(t.from||"Gift")+" · "+AUD(t.amount)}</option>)}
+      </select>
     </div>}
     {i.ref&&<div style={{fontSize:10.5,color:MUTED,marginTop:8,fontStyle:"italic"}}>{i.ref}</div>}
   </div>;}
