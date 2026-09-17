@@ -263,9 +263,12 @@ function App(){
       WebkitMaskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)",
       maskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)"}}/>
 
-    {/* Condensed paid/owing scorecard — floating pill fixed at the top across every tab */}
+    {/* Condensed paid/owing scorecard — floating pill fixed at the top across every tab.
+        Only shows once the main hero scorecard has scrolled out of view. */}
     <div style={{position:"fixed",top:"calc(12px + env(safe-area-inset-top))",left:16,right:16,
       zIndex:45,maxWidth:468,margin:"0 auto",background:"rgba(16,28,21,.94)",
+      opacity:notchVisible?1:0,pointerEvents:notchVisible?"auto":"none",
+      transition:"opacity .2s ease",
       backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid "+HAIRLINE,
       borderRadius:16,boxShadow:"0 12px 28px -10px rgba(0,0,0,.6)",padding:"8px 14px",
       display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
