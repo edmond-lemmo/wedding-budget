@@ -246,18 +246,18 @@ function App(){
       WebkitMaskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)",
       maskImage:"linear-gradient(to bottom, #000 0%, #000 45%, transparent 100%)"}}/>
 
-    {/* Condensed paid/owing scorecard — fixed at the very top across every tab */}
-    <div style={{position:"fixed",top:0,left:0,right:0,zIndex:45,
-      paddingTop:"env(safe-area-inset-top)",height:"calc(env(safe-area-inset-top) + 20px)",
-      display:"flex",alignItems:"center",justifyContent:"center",gap:8,
-      background:"rgba(16,28,21,.85)",backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",
-      borderBottom:"1px solid "+HAIRLINE}}>
-      <span style={{fontSize:10,fontWeight:600,color:LIME}}>Paid {AUD(totalPaid)}</span>
-      <span style={{fontSize:10,color:MUTED}}>·</span>
-      <span style={{fontSize:10,fontWeight:600,color:INK}}>Owing {AUD(balance)}</span>
+    {/* Condensed paid/owing scorecard — floating pill fixed at the top across every tab */}
+    <div style={{position:"fixed",top:"calc(12px + env(safe-area-inset-top))",left:16,right:16,
+      zIndex:45,maxWidth:468,margin:"0 auto",background:"rgba(16,28,21,.94)",
+      backdropFilter:"blur(14px)",WebkitBackdropFilter:"blur(14px)",border:"1px solid "+HAIRLINE,
+      borderRadius:16,boxShadow:"0 12px 28px -10px rgba(0,0,0,.6)",padding:"8px 14px",
+      display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+      <span style={{fontSize:12.5,fontWeight:600,color:LIME}}>Paid {AUD(totalPaid)}</span>
+      <span style={{fontSize:12.5,color:MUTED}}>·</span>
+      <span style={{fontSize:12.5,fontWeight:600,color:INK}}>Owing {AUD(balance)}</span>
     </div>
 
-    <div style={{padding:"calc(44px + env(safe-area-inset-top)) 20px 4px",display:"flex",
+    <div style={{padding:"calc(76px + env(safe-area-inset-top)) 20px 4px",display:"flex",
       alignItems:"center",justifyContent:"space-between"}}>
       <h1 style={{fontSize:22,margin:0,fontWeight:700}}>Wedding Budget</h1>
       {saveStatus!=="idle"&&<span style={{fontSize:11.5,fontWeight:500,
