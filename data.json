@@ -6,7 +6,8 @@
     "Airbnb",
     "Hair Stylist",
     "Makeup Artist",
-    "DJ"
+    "DJ",
+    "Miss Laura Florals"
   ],
   "instalments": [
     {
@@ -125,28 +126,111 @@
       "due": "2027-03-11",
       "amount": 1980.0,
       "ref": "Due one month prior to wedding."
+    },
+    {
+      "id": "florist-deposit",
+      "label": "Florist deposit (50%)",
+      "payee": "Miss Laura Florals",
+      "desc": "Deposit/booking fee — Bridal bouquet, 4 bridesmaids bouquets, 8 boutonnieres, 2 flower girl posies, welcome sign arrangement, 2 ceremony aisle flowers, ceremony installation, 7 reception compotes, design/delivery fee",
+      "due": "2026-10-02",
+      "amount": 3117.5,
+      "ref": "Invoice #36, dated 28 Sep 2026. $6,235 total. Pay by bank transfer, ref BRIGID/EDMOND."
+    },
+    {
+      "id": "florist-balance",
+      "label": "Florist balance (50%)",
+      "payee": "Miss Laura Florals",
+      "desc": "Remaining balance on wedding florals & styling",
+      "due": "2027-04-05",
+      "amount": 3117.5,
+      "ref": "Invoice #36. Balance due Mon 5 Apr 2027. Bank transfer, ref BRIGID/EDMOND."
     }
   ],
   "categories": [
-    { "name": "Venue & drinks", "inclGst": 29315 },
-    { "name": "Photography", "inclGst": 3500 },
-    { "name": "Hair", "inclGst": 1300.0 },
-    { "name": "Makeup", "inclGst": 2410.0 },
-    { "name": "DJ", "inclGst": 3960.0 },
-    { "name": "Airbnb", "inclGst": 4296.44 }
+    {
+      "name": "Venue & drinks",
+      "inclGst": 29315
+    },
+    {
+      "name": "Photography",
+      "inclGst": 3500
+    },
+    {
+      "name": "Hair",
+      "inclGst": 1300.0
+    },
+    {
+      "name": "Makeup",
+      "inclGst": 2410.0
+    },
+    {
+      "name": "DJ",
+      "inclGst": 3960.0
+    },
+    {
+      "name": "Airbnb",
+      "inclGst": 4296.44
+    },
+    {
+      "name": "Flowers",
+      "inclGst": 6235.0
+    }
   ],
   "pending": [
-    { "id": "dress", "label": "Wedding dress", "indicative": null },
-    { "id": "bands", "label": "Wedding bands", "indicative": null },
-    { "id": "flowers", "label": "Flowers", "indicative": null },
-    { "id": "signage", "label": "Signage", "indicative": null },
-    { "id": "bus", "label": "Bus", "indicative": null },
-    { "id": "misc-decor", "label": "Misc decorations", "indicative": 500 },
-    { "id": "shoes", "label": "Shoes", "indicative": 500 },
-    { "id": "accessories", "label": "Accessories", "indicative": 500 },
-    { "id": "perfume", "label": "Perfume", "indicative": 500 },
-    { "id": "church", "label": "Church", "indicative": 500 },
-    { "id": "invites", "label": "Wedding invites", "indicative": 300 },
-    { "id": "videographer", "label": "Videographer", "indicative": null }
+    {
+      "id": "dress",
+      "label": "Wedding dress",
+      "indicative": null
+    },
+    {
+      "id": "bands",
+      "label": "Wedding bands",
+      "indicative": null
+    },
+    {
+      "id": "signage",
+      "label": "Signage",
+      "indicative": null
+    },
+    {
+      "id": "bus",
+      "label": "Bus",
+      "indicative": null
+    },
+    {
+      "id": "misc-decor",
+      "label": "Misc decorations",
+      "indicative": 500
+    },
+    {
+      "id": "shoes",
+      "label": "Shoes",
+      "indicative": 500
+    },
+    {
+      "id": "accessories",
+      "label": "Accessories",
+      "indicative": 500
+    },
+    {
+      "id": "perfume",
+      "label": "Perfume",
+      "indicative": 500
+    },
+    {
+      "id": "church",
+      "label": "Church",
+      "indicative": 500
+    },
+    {
+      "id": "invites",
+      "label": "Wedding invites",
+      "indicative": 300
+    },
+    {
+      "id": "videographer",
+      "label": "Videographer",
+      "indicative": null
+    }
   ]
 }
