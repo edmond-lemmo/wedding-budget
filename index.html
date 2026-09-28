@@ -262,7 +262,6 @@ function App(){
   const loanDrawn=loanItems.reduce((s,i)=>s+Math.min(i.loanPaidAmount,i.loanAmount),0);
   const loanPlanned=loanItems.reduce((s,i)=>s+Math.max(i.loanAmount-i.loanPaidAmount,0),0);
   const loanAvailable=LOAN_TOTAL-loanDrawn-loanPlanned;
-  const loanUndrawn=LOAN_TOTAL-loanDrawn;
 
   // how much of what's actually been paid so far came from a placed gift —
   // capped by what's been paid on that bill, so an unpaid or partly-paid
@@ -498,18 +497,17 @@ function App(){
           </div>
         </div>
       </Section>
-      <Section title="After every bill">
-        {(()=>{const left=loanUndrawn-balance;const ok=left>=-0.005;
+      <Section title="Left owing">
+        {(()=>{const left=Math.max(balance-loanPlanned,0);
           const Row=({l,v,sub,bold,col})=><div style={{display:"flex",justifyContent:"space-between",
             alignItems:"baseline",padding:"11px 0",borderTop:bold?"1px solid "+HAIRLINE:"none"}}>
             <div><div style={{fontSize:bold?14:13,fontWeight:bold?600:500}}>{l}</div>
               {sub&&<div style={{fontSize:11.5,color:MUTED,marginTop:1}}>{sub}</div>}</div>
             <div style={{fontSize:bold?18:14,fontWeight:bold?700:600,color:col||INK}}>{v}</div></div>;
           return <div style={{background:CARD,border:"1px solid "+HAIRLINE,borderRadius:16,padding:"4px 16px 6px"}}>
-            <Row l="Loan not yet drawn" sub={AUD(loanPlanned)+" committed + "+AUD(loanAvailable)+" free"} v={AUD(loanUndrawn)}/>
-            <Row l="Less everything still owing" sub="All unpaid bills, after paid amounts and gifts" v={"− "+AUD(Math.max(balance,0))}/>
-            <Row bold l={ok?"Left over":"Short by"} sub={ok?"Loan money spare once every bill is paid"
-              :"Extra cash needed beyond the loan"} v={AUD(Math.abs(left))} col={ok?LIME:CORAL}/>
+            <Row l="Still owing" sub={"After "+AUD(totalPaid)+" paid (incl. "+AUD(loanDrawn)+" from the loan)"} v={AUD(Math.max(balance,0))}/>
+            <Row l="Less committed to the loan" sub="Set aside, not yet drawn" v={"− "+AUD(loanPlanned)}/>
+            <Row bold l="Left owing" sub="Still to be covered by own funds or gifts" v={AUD(left)} col={left>0.005?CORAL:LIME}/>
           </div>;})()}
       </Section>
       <Section title="Funded from the loan">
