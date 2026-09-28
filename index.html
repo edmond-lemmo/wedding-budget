@@ -489,26 +489,14 @@ function App(){
               <div style={{height:"100%",width:((loanPlanned/LOAN_TOTAL)*100)+"%",background:BLUE}}/></div>
             <span style={{fontSize:11.5,fontWeight:600,opacity:.9}}>{((loanDrawn/LOAN_TOTAL)*100).toFixed(0)}%</span>
           </div>
-          <div style={{display:"flex",gap:18,marginTop:16,paddingTop:14,
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"14px 18px",marginTop:16,paddingTop:14,
             borderTop:"1px solid rgba(245,249,241,.16)",position:"relative"}}>
-            {[["Drawn",loanDrawn],["Committed",loanPlanned],["Total",LOAN_TOTAL]].map(([l,v])=>
+            {[["Total",LOAN_TOTAL],["Drawn",loanDrawn],["Committed",loanPlanned],
+              ["Left once committed paid",LOAN_TOTAL-loanDrawn-loanPlanned,LIME]].map(([l,v,c])=>
               <div key={l}><div style={{fontSize:11,opacity:.75}}>{l}</div>
-                <div style={{fontSize:15,fontWeight:600,marginTop:2}}>{AUD(v)}</div></div>)}
+                <div style={{fontSize:15,fontWeight:600,marginTop:2,color:c||"inherit"}}>{AUD(v)}</div></div>)}
           </div>
         </div>
-      </Section>
-      <Section title="Left owing">
-        {(()=>{const left=Math.max(balance-loanPlanned,0);
-          const Row=({l,v,sub,bold,col})=><div style={{display:"flex",justifyContent:"space-between",
-            alignItems:"baseline",padding:"11px 0",borderTop:bold?"1px solid "+HAIRLINE:"none"}}>
-            <div><div style={{fontSize:bold?14:13,fontWeight:bold?600:500}}>{l}</div>
-              {sub&&<div style={{fontSize:11.5,color:MUTED,marginTop:1}}>{sub}</div>}</div>
-            <div style={{fontSize:bold?18:14,fontWeight:bold?700:600,color:col||INK}}>{v}</div></div>;
-          return <div style={{background:CARD,border:"1px solid "+HAIRLINE,borderRadius:16,padding:"4px 16px 6px"}}>
-            <Row l="Still owing" sub={"After "+AUD(totalPaid)+" paid (incl. "+AUD(loanDrawn)+" from the loan)"} v={AUD(Math.max(balance,0))}/>
-            <Row l="Less committed to the loan" sub="Set aside, not yet drawn" v={"− "+AUD(loanPlanned)}/>
-            <Row bold l="Left owing" sub="Still to be covered by own funds or gifts" v={AUD(left)} col={left>0.005?CORAL:LIME}/>
-          </div>;})()}
       </Section>
       <Section title="Funded from the loan">
         <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,overflow:"hidden"}}>
