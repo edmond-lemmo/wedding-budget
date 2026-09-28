@@ -91,7 +91,7 @@ function App(){
   const [loanPaid,setLoanPaid]=useState({});
   const [transfers,setTransfers]=useState([]);
   const [tab,setTab]=useState("overview");
-  const goTab=t=>{setTab(t); window.scrollTo(0,0);};
+  const goTab=t=>{setTab(t); if(t==="payments") setExpanded(null); window.scrollTo(0,0);};
   const [expanded,setExpanded]=useState(null);
   const [editing,setEditing]=useState(null);
   const [saveStatus,setSaveStatus]=useState("idle");
@@ -182,10 +182,22 @@ function App(){
     setCustomDates(next); save(snap({customDates:next}));};
   const updateLoan=(id,v)=>{const n=v===""?0:parseFloat(v);
     const next={...loanFunded,[id]:isNaN(n)?0:n}; setLoanFunded(next); save(snap({loanFunded:next}));};
-  const updateLoanPaid=(id,v)=>{const n=v===""?0:parseFloat(v);
-    const next={...loanPaid,[id]:isNaN(n)?0:n}; setLoanPaid(next); save(snap({loanPaid:next}));};
-  const toggleLoanPaid=(id,full)=>{const cur=loanPaid[id]||0;const isFull=full>0&&cur>=full;
-    const next={...loanPaid,[id]:isFull?0:full}; setLoanPaid(next); save(snap({loanPaid:next}));};
+  // money drawn from the loan has gone out the door, so Paid is never less
+  // than Loan drawn — and a draw covering the whole bill ticks Paid outright
+  const syncPaidToLoan=(id,drawn,wasDrawn,amt)=>{
+    const cur=paid[id]||0;
+    if(amt>0&&drawn>=amt-0.005) return {...paid,[id]:amt};
+    if(drawn>cur) return {...paid,[id]:Math.min(drawn,amt||drawn)};
+    // unticking a draw that had covered the whole bill un-ticks Paid too
+    if(amt>0&&wasDrawn>=amt-0.005&&cur>=amt-0.005) return {...paid,[id]:drawn};
+    return paid;};
+  const applyLoanPaid=(id,val,amt)=>{const was=loanPaid[id]||0;
+    const next={...loanPaid,[id]:val}; const nextPaid=syncPaidToLoan(id,val,was,amt);
+    setLoanPaid(next); setPaid(nextPaid); save(snap({loanPaid:next,paid:nextPaid}));};
+  const updateLoanPaid=(id,v,amt)=>{const n=v===""?0:parseFloat(v);
+    applyLoanPaid(id,isNaN(n)?0:n,amt);};
+  const toggleLoanPaid=(id,full,amt)=>{const cur=loanPaid[id]||0;const isFull=full>0&&cur>=full;
+    applyLoanPaid(id,isFull?0:full,amt);};
   const addTransfer=()=>{const next=[...transfers,{id:"t-"+Date.now(),from:"",amount:0,date:"",instalmentId:null}];
     setTransfers(next); save(snap({transfers:next}));};
   const updTransfer=(id,f,v)=>{const next=transfers.map(t=>t.id===id
@@ -235,7 +247,7 @@ function App(){
     return{name,due,paid:p,balance:due-p,rows,nextDue};});
 
   const isExp=n=>{if(expanded&&Object.prototype.hasOwnProperty.call(expanded,n))return expanded[n];
-    const s=suppliers.find(x=>x.name===n); return s?s.balance>0.01:true;};
+    return false;};
   const toggleExp=n=>setExpanded(p=>({...(p||{}),[n]:!isExp(n)}));
 
   const outstanding=instalments.filter(i=>(i.amount||0)>0&&i.paidAmount<i.amount)
@@ -250,6 +262,7 @@ function App(){
   const loanDrawn=loanItems.reduce((s,i)=>s+Math.min(i.loanPaidAmount,i.loanAmount),0);
   const loanPlanned=loanItems.reduce((s,i)=>s+Math.max(i.loanAmount-i.loanPaidAmount,0),0);
   const loanAvailable=LOAN_TOTAL-loanDrawn-loanPlanned;
+  const loanUndrawn=LOAN_TOTAL-loanDrawn;
 
   // how much of what's actually been paid so far came from a placed gift —
   // capped by what's been paid on that bill, so an unpaid or partly-paid
@@ -389,7 +402,7 @@ function App(){
           {suppliers.map(s=>{const sp=s.due>0?Math.min(100,(s.paid/s.due)*100):0;
             const c=CAT_COLORS[SUP.indexOf(s.name)%CAT_COLORS.length];
             return <button key={s.name} onClick={()=>{goTab("payments");
-              setExpanded(p=>({...(p||{}),[s.name]:true}));}}
+              setExpanded({[s.name]:true});}}
               style={{background:CARD,border:"1px solid "+HAIRLINE,borderRadius:16,padding:"12px 14px",
                 display:"flex",alignItems:"center",gap:12,width:"100%",textAlign:"left",
                 cursor:"pointer",color:INK,fontFamily:F}}>
@@ -484,6 +497,20 @@ function App(){
                 <div style={{fontSize:15,fontWeight:600,marginTop:2}}>{AUD(v)}</div></div>)}
           </div>
         </div>
+      </Section>
+      <Section title="After every bill">
+        {(()=>{const left=loanUndrawn-balance;const ok=left>=-0.005;
+          const Row=({l,v,sub,bold,col})=><div style={{display:"flex",justifyContent:"space-between",
+            alignItems:"baseline",padding:"11px 0",borderTop:bold?"1px solid "+HAIRLINE:"none"}}>
+            <div><div style={{fontSize:bold?14:13,fontWeight:bold?600:500}}>{l}</div>
+              {sub&&<div style={{fontSize:11.5,color:MUTED,marginTop:1}}>{sub}</div>}</div>
+            <div style={{fontSize:bold?18:14,fontWeight:bold?700:600,color:col||INK}}>{v}</div></div>;
+          return <div style={{background:CARD,border:"1px solid "+HAIRLINE,borderRadius:16,padding:"4px 16px 6px"}}>
+            <Row l="Loan not yet drawn" sub={AUD(loanPlanned)+" committed + "+AUD(loanAvailable)+" free"} v={AUD(loanUndrawn)}/>
+            <Row l="Less everything still owing" sub="All unpaid bills, after paid amounts and gifts" v={"− "+AUD(Math.max(balance,0))}/>
+            <Row bold l={ok?"Left over":"Short by"} sub={ok?"Loan money spare once every bill is paid"
+              :"Extra cash needed beyond the loan"} v={AUD(Math.abs(left))} col={ok?LIME:CORAL}/>
+          </div>;})()}
       </Section>
       <Section title="Funded from the loan">
         <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,overflow:"hidden"}}>
@@ -727,12 +754,12 @@ function Instalment({i,editing,setEditing,onDate,onAmount,onToggle,onPaid,onLoan
       <span style={{fontSize:11,color:MUTED,marginLeft:"auto"}}>of {AUD(i.amount)}</span>
     </div>}
     {!tbc&&i.loanAmount>0&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
-      <Check on={i.loanAmount>0&&i.loanPaidAmount>=i.loanAmount} onClick={()=>onLoanPaidToggle(i.id,i.loanAmount)} small/>
+      <Check on={i.loanAmount>0&&i.loanPaidAmount>=i.loanAmount} onClick={()=>onLoanPaidToggle(i.id,i.loanAmount,i.amount||0)} small/>
       <label style={{fontSize:11.5,color:MUTED}}>Loan drawn</label>
       <div style={{display:"flex",alignItems:"center",background:CARD,borderRadius:8,
         border:"1px solid "+HAIRLINE,padding:"3px 8px"}}>
         <span style={{fontSize:12,color:MUTED}}>$</span>
-        <Money value={i.loanPaidAmount} onChange={v=>onLoanPaid(i.id,v)}/></div>
+        <Money value={i.loanPaidAmount} onChange={v=>onLoanPaid(i.id,v,i.amount||0)}/></div>
       <span style={{fontSize:11,color:MUTED,marginLeft:"auto"}}>of {AUD(i.loanAmount)}</span>
     </div>}
     {!tbc&&transfers&&transfers.length>0&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
