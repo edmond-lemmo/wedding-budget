@@ -91,6 +91,7 @@ function App(){
   const [loanPaid,setLoanPaid]=useState({});
   const [transfers,setTransfers]=useState([]);
   const [loanOther,setLoanOther]=useState([]);
+  const [otherFunds,setOtherFunds]=useState(0);
   const [tab,setTab]=useState("overview");
   const goTab=t=>{setTab(t); if(t==="payments") setExpanded(null); window.scrollTo(0,0);};
   const [expanded,setExpanded]=useState(null);
@@ -159,6 +160,7 @@ function App(){
       setCustomDates(saved.customDates||{});
       setTransfers(saved.transfers||[]);
       setLoanOther(saved.loanOther||[]);
+      setOtherFunds(saved.otherFunds||0);
     }catch(e){ setErr(e.message); }
   })();},[]);
 
@@ -171,7 +173,7 @@ function App(){
     }catch(e){ setSaveStatus("error"); }
   },[]);
 
-  const snap=(o={})=>({paid,customAmounts,customDates,loanFunded,loanPaid,transfers,loanOther,...o});
+  const snap=(o={})=>({paid,customAmounts,customDates,loanFunded,loanPaid,transfers,loanOther,otherFunds,...o});
 
   const updatePaid=(id,v)=>{const n=v===""?0:parseFloat(v);
     const next={...paid,[id]:isNaN(n)?0:n}; setPaid(next); save(snap({paid:next}));};
@@ -222,6 +224,10 @@ function App(){
     setLoanOther(next); save(snap({loanOther:next}));};
   const delLoanOther=id=>{const next=loanOther.filter(o=>o.id!==id);
     setLoanOther(next); save(snap({loanOther:next}));};
+  // money in the same account that isn't part of the loan at all (e.g. your
+  // own savings sitting alongside it) — kept separate from the loan maths
+  const updateOtherFunds=v=>{const n=v===""?0:parseFloat(v);
+    const next=isNaN(n)?0:n; setOtherFunds(next); save(snap({otherFunds:next}));};
 
   if(err) return <div style={{padding:24,color:CORAL,fontSize:14}}>
     Couldn't load data.json — {err}. Make sure it sits next to index.html in the repo.</div>;
@@ -506,12 +512,36 @@ function App(){
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"14px 18px",marginTop:16,paddingTop:14,
             borderTop:"1px solid rgba(245,249,241,.16)",position:"relative"}}>
-            {[["Total",LOAN_TOTAL],["Drawn",loanDrawnTotal],["Committed",loanPlanned],
-              ["Left once committed paid",loanAvailable,LIME]].map(([l,v,c])=>
+            {[["Total",LOAN_TOTAL],["Wedding",loanDrawn],["Other expenses",otherWithdrawals],
+              ["Committed",loanPlanned],["Left once committed paid",loanAvailable,LIME]].map(([l,v,c])=>
               <div key={l}><div style={{fontSize:11,opacity:.75}}>{l}</div>
                 <div style={{fontSize:15,fontWeight:600,marginTop:2,color:c||"inherit"}}>{AUD(v)}</div></div>)}
           </div>
         </div>
+      </Section>
+
+      <Section title="Account">
+        <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,padding:16}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13}}>
+            <span style={{color:MUTED}}>Loan remaining</span>
+            <span style={{fontWeight:600}}>{AUD(loanAvailable)}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:13,marginTop:10}}>
+            <span style={{color:MUTED}}>Other money in the account</span>
+            <div style={{display:"flex",alignItems:"center",background:PAPER,borderRadius:8,
+              border:"1px solid "+HAIRLINE,padding:"3px 8px"}}>
+              <span style={{fontSize:12,color:MUTED}}>$</span>
+              <Money value={otherFunds} onChange={updateOtherFunds} size={13} w={90}/></div>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:14,
+            fontWeight:700,marginTop:12,paddingTop:12,borderTop:"1px solid "+HAIRLINE}}>
+            <span>Total in the account</span>
+            <span style={{color:LIME}}>{AUD(loanAvailable+otherFunds)}</span>
+          </div>
+        </div>
+        <div style={{fontSize:11,color:MUTED,marginTop:10,lineHeight:1.5}}>
+          If the account also holds money that isn't part of the {AUD(LOAN_TOTAL).replace(".00","")} loan
+          — your own savings sitting alongside it, say — enter it here so the total matches your bank balance.</div>
       </Section>
       <Section title="Funded from the loan">
         <div style={{background:CARD,borderRadius:16,border:"1px solid "+HAIRLINE,overflow:"hidden"}}>
@@ -539,10 +569,13 @@ function App(){
       </Section>
 
       <Section title="Other withdrawals"
-        right={<button onClick={addLoanOther} style={{display:"flex",alignItems:"center",gap:4,
-          background:LIME_SOFT,border:"none",borderRadius:8,padding:"5px 10px",color:LIME,
-          fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F}}>
-          <IconPlus size={13}/> Add</button>}>
+        right={<div style={{display:"flex",alignItems:"center",gap:10}}>
+          {otherWithdrawals>0&&<span style={{fontSize:12,color:MUTED}}>{AUD(otherWithdrawals)} total</span>}
+          <button onClick={addLoanOther} style={{display:"flex",alignItems:"center",gap:4,
+            background:LIME_SOFT,border:"none",borderRadius:8,padding:"5px 10px",color:LIME,
+            fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:F}}>
+            <IconPlus size={13}/> Add</button>
+        </div>}>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
           {loanOther.length===0&&<div style={{background:CARD,border:"1px solid "+HAIRLINE,
             borderRadius:16,padding:16,fontSize:13,color:MUTED,fontStyle:"italic"}}>
